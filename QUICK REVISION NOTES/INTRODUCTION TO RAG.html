@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RAG – Retrieval Augmented Generation – Cheat Sheet</title>
+    <style>
+        :root {
+            --bg: #ffffff;
+            --text: #000000;
+            --border: #000000;
+            --box-bg: #ffffff;
+            --rule: #000000;
+            --table-border: #000000;
+            --light-border: #cccccc;
+        }
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body {
+            background: var(--bg); color: var(--text);
+            font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+            font-size: 10pt; line-height: 1.45;
+            max-width: 210mm; margin: 0 auto;
+            padding: 8mm 10mm 12mm 10mm;
+            -webkit-print-color-adjust: exact; print-color-adjust: exact;
+        }
+        @media print {
+            body { padding:8mm 10mm 12mm 10mm; font-size:9pt; }
+            @page { size: A4; margin: 0; }
+            .page-break { page-break-before: always; }
+            .no-break { page-break-inside: avoid; }
+        }
+        @media screen and (max-width:600px) {
+            body { padding:4mm 5mm; font-size:8.5pt; }
+        }
+        h1 {
+            font-size: 22pt; font-weight:900; text-align:center; letter-spacing:1.5pt;
+            text-transform:uppercase; border:3px solid var(--border); padding:10px 16px;
+            margin-bottom:6px; line-height:1.2;
+        }
+        .subtitle { text-align:center; font-size:10pt; font-style:italic; margin-bottom:12px; border-bottom:2px solid var(--border); padding-bottom:6px; }
+        h2 { font-size:14pt; font-weight:900; text-transform:uppercase; border-bottom:2.5px solid var(--border); padding-bottom:3px; margin-top:18px; margin-bottom:8px; letter-spacing:0.8pt; }
+        h3 { font-size:11.5pt; font-weight:700; margin-top:12px; margin-bottom:6px; text-transform:uppercase; letter-spacing:0.4pt; border-left:4px solid var(--border); padding-left:8px; }
+        h4 { font-size:10pt; font-weight:700; margin-top:8px; margin-bottom:4px; }
+        p { margin-bottom:4px; }
+        ul { list-style-type:square; padding-left:18px; margin-bottom:6px; }
+        ul li { margin-bottom:2px; }
+        ul.compact li { margin-bottom:1px; line-height:1.3; }
+        .formula-box {
+            border:2px solid var(--border); padding:10px 14px; margin:10px auto;
+            text-align:center; font-size:13pt; font-weight:700;
+            font-family:"Courier New", Courier, monospace; letter-spacing:0.5pt;
+            background:#fafafa; max-width:95%; word-break:break-all;
+        }
+        .formula-box.small { font-size:10pt; padding:7px 10px; }
+        .var-meaning { font-size:9pt; margin-top:4px; text-align:left; font-family:"Helvetica Neue", Helvetica, Arial, sans-serif; font-weight:400; line-height:1.4; }
+        .interpretation { font-size:9pt; font-style:italic; margin-top:3px; text-align:left; font-weight:400; font-family:"Helvetica Neue", Helvetica, Arial, sans-serif; }
+        .interview-note { font-size:8.5pt; font-weight:700; margin-top:3px; text-align:left; font-family:"Helvetica Neue", Helvetica, Arial, sans-serif; text-transform:uppercase; letter-spacing:0.3pt; }
+        table { width:100%; border-collapse:collapse; margin:8px 0 10px 0; font-size:9pt; }
+        table th { background-color:#e8e8e8; border:1.5px solid var(--border); padding:6px 7px; text-align:left; font-weight:700; text-transform:uppercase; letter-spacing:0.3pt; font-size:8.5pt; }
+        table td { border:1px solid var(--light-border); padding:5px 7px; vertical-align:top; }
+        .compact-table td, .compact-table th { padding:3px 5px; font-size:8.5pt; }
+        .divider { border:none; border-top:2px solid var(--border); margin:14px 0; }
+        .divider-thin { border:none; border-top:1px solid var(--light-border); margin:8px 0; }
+        .two-col { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin:6px 0; }
+        @media screen and (max-width:600px) { .two-col { grid-template-columns:1fr; } }
+        .highlight-box { border:2px dashed var(--border); padding:8px 12px; margin:8px 0; background:#fdfdfd; }
+        .flow-arrow { text-align:center; font-weight:900; font-size:10pt; margin:2px 0; letter-spacing:1pt; }
+        .qa-block { margin:6px 0; padding-left:8px; border-left:3px solid var(--border); }
+        .qa-block .q { font-weight:700; font-size:10pt; }
+        .qa-block .a { font-size:9.5pt; margin-left:4px; }
+        .cram-bullet { font-size:9pt; margin-bottom:2px; line-height:1.35; }
+        .ultra-box { border:3px solid var(--border); padding:10px 14px; margin:12px 0; background:#fafafa; }
+        .ultra-box h3 { border-left:none; text-align:center; font-size:13pt; margin-top:0; padding-left:0; }
+        .ultra-box .row { display:flex; flex-wrap:wrap; gap:4px 12px; margin:3px 0; font-size:9.5pt; }
+        .ultra-box .row strong { min-width:130px; display:inline-block; font-size:9pt; text-transform:uppercase; letter-spacing:0.3pt; }
+    </style>
+</head>
+<body>
+
+    <h1>RAG – Retrieval Augmented Generation</h1>
+    <p class="subtitle">Theory, Components, Data Flow, Failures & Solutions – why LLMs need external knowledge and how RAG delivers it.</p>
+
+    <!-- 1. WHAT IS RAG -->
+    <h2>1. What is RAG?</h2>
+    <ul>
+        <li><strong>Definition:</strong> RAG is a hybrid framework that combines a <em>retrieval system</em> with a <em>generative model (LLM)</em>. It retrieves relevant documents from an external knowledge source and injects them into the prompt, enabling the LLM to generate fact‑grounded, context‑aware responses.</li>
+        <li><strong>Core idea:</strong> Instead of relying solely on the LLM’s parametric memory (which is static and often outdated), RAG provides fresh, verifiable knowledge at inference time.</li>
+        <li><strong>Analogy:</strong> An open‑book exam – the LLM can look up facts in a curated library (vector database) before answering.</li>
+    </ul>
+    <hr class="divider">
+
+    <!-- 2. WHY WE NEED RAG (PROBLEMS IT SOLVES) -->
+    <h2>2. Why Do We Need RAG? (Limitations of LLMs)</h2>
+    <table>
+        <tr><th>Problem</th><th>Description</th><th>RAG Solution</th></tr>
+        <tr><td><strong>Knowledge Cut‑off</strong></td><td>LLMs are frozen at training time; cannot answer questions about recent events.</td><td>Retrieve up‑to‑date documents from live sources.</td></tr>
+        <tr><td><strong>Hallucination</strong></td><td>LLMs generate plausible but factually incorrect information.</td><td>Ground generation in retrieved, verifiable passages.</td></tr>
+        <tr><td><strong>Domain‑Specific Knowledge</strong></td><td>LLMs lack proprietary, confidential, or niche knowledge.</td><td>Index internal documents; retrieval provides domain expertise.</td></tr>
+        <tr><td><strong>Lack of Source Attribution</strong></td><td>LLMs cannot cite their sources.</td><td>Retrieved chunks serve as explicit citations.</td></tr>
+        <tr><td><strong>Scalability of Fine‑tuning</strong></td><td>Fine‑tuning on every new knowledge update is expensive and slow.</td><td>Update the vector database independently; no retraining needed.</td></tr>
+    </table>
+    <hr class="divider">
+
+    <!-- 3. HOW RAG WORKS – HIGH-LEVEL -->
+    <h2>3. How RAG Works (Conceptual)</h2>
+    <div class="no-break">
+        <div class="flow-arrow">1. USER QUERY: e.g., "What is the ML course duration?"</div>
+        <div class="flow-arrow">↓</div>
+        <div class="flow-arrow">2. QUERY EMBEDDING: Convert query into a vector using an embedding model.</div>
+        <div class="flow-arrow">↓</div>
+        <div class="flow-arrow">3. SIMILARITY SEARCH: Find top‑k most similar document chunks in the vector database.</div>
+        <div class="flow-arrow">↓</div>
+        <div class="flow-arrow">4. RETRIEVED CONTEXT: The k chunks (text) are retrieved.</div>
+        <div class="flow-arrow">↓</div>
+        <div class="flow-arrow">5. PROMPT CONSTRUCTION: The query + retrieved context are assembled into a prompt (often with instructions like "Answer based only on the provided context").</div>
+        <div class="flow-arrow">↓</div>
+        <div class="flow-arrow">6. LLM GENERATION: The LLM reads the augmented prompt and generates an answer grounded in the context.</div>
+        <div class="flow-arrow">↓</div>
+        <div class="flow-arrow">7. OUTPUT: Answer (optionally with source citations).</div>
+    </div>
+    <hr class="divider">
+
+    <!-- 4. COMPONENTS OF A RAG SYSTEM -->
+    <h2>4. Core Components of a RAG Pipeline</h2>
+    <table>
+        <tr><th>Component</th><th>Role</th><th>Examples / Notes</th></tr>
+        <tr><td><strong>1. Data Ingestion & Chunking</strong></td><td>Raw documents (PDFs, web pages, etc.) are split into smaller, semantically meaningful chunks. Chunk size and overlap are critical hyperparameters.</td><td>Chunk size 500‑1000 tokens, 10‑20% overlap. Too small loses context; too large reduces retrieval precision.</td></tr>
+        <tr><td><strong>2. Embedding Model</strong></td><td>Converts text chunks (and queries) into dense vector representations that capture semantic meaning.</td><td>e.g., text‑embedding‑ada‑002, BGE, Instructor. Multi‑lingual models for multi‑language corpora.</td></tr>
+        <tr><td><strong>3. Vector Database</strong></td><td>Stores the chunk embeddings and associated metadata; enables fast approximate nearest‑neighbour (ANN) search.</td><td>Pinecone, Weaviate, Milvus, Chroma, FAISS.</td></tr>
+        <tr><td><strong>4. Retriever</strong></td><td>Given a query embedding, fetches the top‑k most similar chunks from the vector database.</td><td>Can be enhanced with hybrid search (dense + sparse/BM25) or metadata filtering.</td></tr>
+        <tr><td><strong>5. Prompt Template</strong></td><td>Structure that combines the user query, retrieved context, and system instructions before feeding to the LLM.</td><td>"You are a helpful assistant. Use ONLY the following context to answer the question. If unknown, say 'I don't know'."</td></tr>
+        <tr><td><strong>6. LLM (Generator)</strong></td><td>Generates the final answer based on the augmented prompt.</td><td>GPT‑4, Claude, Llama‑2, Mistral, etc.</td></tr>
+        <tr><td><strong>7. (Optional) Reranker</strong></td><td>Re‑ranks retrieved chunks according to a more precise relevance model, improving the quality of context fed to the LLM.</td><td>Cross‑encoder (e.g., Cohere Rerank, bge‑reranker).</td></tr>
+        <tr><td><strong>8. (Optional) Guardrails / Safety</strong></td><td>Checks input (for prompt injection) and output (for toxicity, PII, hallucinations).</td><td>Lakera Guard, NeMo Guardrails, custom regex.</td></tr>
+    </table>
+    <hr class="divider">
+
+    <!-- 5. RAG DATA FLOW (END-TO-END) -->
+    <h2>5. RAG Data Flow (Inference Time)</h2>
+    <div class="two-col">
+        <div>
+            <h4>🔸 Ingestion (Offline)</h4>
+            <div class="flow-arrow">Raw Documents</div>
+            <div class="flow-arrow">↓ Chunking</div>
+            <div class="flow-arrow">↓ Embedding Model</div>
+            <div class="flow-arrow">↓ Store Vectors in Vector DB</div>
+            <p style="margin-top:6px;">(Continuous / periodic re‑indexing)</p>
+        </div>
+        <div>
+            <h4>🔹 Querying (Online)</h4>
+            <div class="flow-arrow">User Query</div>
+            <div class="flow-arrow">↓ Embed Query</div>
+            <div class="flow-arrow">↓ Retrieve Top‑k from Vector DB</div>
+            <div class="flow-arrow">↓ (Optional) Rerank</div>
+            <div class="flow-arrow">↓ Assemble Prompt: Query + Context + Instructions</div>
+            <div class="flow-arrow">↓ LLM Generation</div>
+            <div class="flow-arrow">↓ Output Answer (with citations)</div>
+        </div>
+    </div>
+    <hr class="divider">
+
+    <!-- 6. FAILURES IN RAG -->
+    <h2>6. Common Failures in RAG Systems</h2>
+    <table>
+        <tr><th>Failure Mode</th><th>Cause</th><th>Mitigation</th></tr>
+        <tr><td><strong>Retrieval Failure (Low Recall)</strong></td><td>Correct document chunk not in top‑k; embedding model mismatch; poor chunking.</td><td>Hybrid search (dense + keyword), query rewriting, better embeddings, chunk size tuning, increase k.</td></tr>
+        <tr><td><strong>Context Irrelevance</strong></td><td>Retrieved chunks are topically unrelated due to weak embeddings or ambiguous query.</td><td>Query expansion, metadata filtering, reranker.</td></tr>
+        <tr><td><strong>Hallucination (Un‑grounded output)</strong></td><td>LLM ignores the context or introduces external facts.</td><td>Strong prompt instructions, faithfulness evaluation, confidence filtering.</td></tr>
+        <tr><td><strong>Insufficient Context</strong></td><td>Answer requires information spread across multiple chunks; a single chunk lacks completeness.</td><td>Increase k, use a “map‑reduce” or iterative retrieval strategy.</td></tr>
+        <tr><td><strong>Ranking Problem (Relevant docs not at top)</strong></td><td>Retriever returns correct docs but ranks them low; LLM may focus on top‑ranked, irrelevant docs.</td><td>Reranker to reorder results before passing to LLM.</td></tr>
+        <tr><td><strong>Prompt Injection</strong></td><td>Malicious user input overrides system instructions and causes unsafe behaviour.</td><td>Input guardrails, strict prompt templates, input sanitization.</td></tr>
+        <tr><td><strong>Latency / Cost</strong></td><td>Multiple network calls (embedding, vector DB, LLM) increase response time and token usage.</td><td>Caching frequent queries, using smaller models, optimizing chunking.</td></tr>
+    </table>
+    <hr class="divider">
+
+    <!-- 7. INJECTING INFORMATION VS. FINE-TUNING VS. IN-CONTEXT LEARNING -->
+    <h2>7. Knowledge Injection: RAG vs. Fine‑tuning vs. In‑Context Learning</h2>
+
+    <h3>7.1 RAG (Prompt Injection with Retrieved Context)</h3>
+    <ul>
+        <li><strong>Mechanism:</strong> Add external knowledge directly into the prompt as context. LLM treats it as part of the input and generates grounded answers.</li>
+        <li><strong>Update:</strong> Instant – simply update the vector database; no model weight changes.</li>
+        <li><strong>Transparency:</strong> Sources are visible and citable.</li>
+        <li><strong>Best for:</strong> Dynamic, fresh, proprietary, or very large knowledge bases.</li>
+    </ul>
+
+    <h3>7.2 Fine‑tuning</h3>
+    <ul>
+        <li><strong>Mechanism:</strong> Continue training the base model on domain‑specific data to internalize knowledge into its weights.</li>
+        <li><strong>Update:</strong> Slow, expensive; requires re‑training when knowledge changes.</li>
+        <li><strong>Transparency:</strong> No explicit source citations; model “knows” the facts but can hallucinate.</li>
+        <li><strong>Best for:</strong> Teaching style, tone, formats, or highly specialized tasks where retrieval isn't feasible.</li>
+    </ul>
+
+    <h3>7.3 In‑Context Learning (Few‑shot Prompting)</h3>
+    <ul>
+        <li><strong>Mechanism:</strong> Provide a few examples (shots) directly in the prompt to steer the LLM’s behaviour without weight updates.</li>
+        <li><strong>Update:</strong> Immediate – just change the prompt.</li>
+        <li><strong>Limitation:</strong> Limited by context window; may not cover vast knowledge.</li>
+        <li><strong>Best for:</strong> Quick adaptation to a task format or style, not for injecting large factual knowledge.</li>
+    </ul>
+    <hr class="divider">
+
+    <!-- 8. COMPARISON TABLE -->
+    <h2>8. RAG vs. Fine‑tuning vs. In‑Context Learning</h2>
+    <table>
+        <tr><th>Aspect</th><th>RAG</th><th>Fine‑tuning</th><th>In‑Context Learning</th></tr>
+        <tr><td><strong>Knowledge source</strong></td><td>External database (vector DB)</td><td>Implicit in model weights</td><td>Directly in prompt</td></tr>
+        <tr><td><strong>Update speed</strong></td><td>Instant (update DB)</td><td>Slow (re‑training)</td><td>Instant (modify prompt)</td></tr>
+        <tr><td><strong>Scale of knowledge</strong></td><td>Very large (millions of docs)</td><td>Limited by model capacity & training data</td><td>Limited by context window</td></tr>
+        <tr><td><strong>Explainability / Sources</strong></td><td>Excellent (explicit chunks)</td><td>Poor (black‑box weights)</td><td>Moderate (examples shown)</td></tr>
+        <tr><td><strong>Risk of hallucination</strong></td><td>Reduced (grounded in context)</td><td>Still present</td><td>Reduced for format, not facts</td></tr>
+        <tr><td><strong>Computational cost at inference</strong></td><td>Higher (retrieval + LLM call)</td><td>Same as base model</td><td>Same as base model</td></tr>
+    </table>
+    <hr class="divider">
+
+    <!-- 9. ADVANTAGES & LIMITATIONS OF RAG -->
+    <h2>9. Advantages & Limitations of RAG (Summary)</h2>
+    <div class="two-col">
+        <div>
+            <h4>✅ Advantages</h4>
+            <ul>
+                <li>Up‑to‑date knowledge without retraining.</li>
+                <li>Reduces hallucination by grounding in facts.</li>
+                <li>Transparent and auditable (citations).</li>
+                <li>Handles proprietary/private data securely (DB stays on‑prem).</li>
+                <li>Scales to huge corpora efficiently.</li>
+                <li>Flexible: can swap LLM or embedding model independently.</li>
+            </ul>
+        </div>
+        <div>
+            <h4>❌ Limitations</h4>
+            <ul>
+                <li>Retrieval quality is critical; bad retrieval → bad answer.</li>
+                <li>Adds latency (multiple stages).</li>
+                <li>Context window limits total retrieved content.</li>
+                <li>Chunking strategy heavily influences performance.</li>
+                <li>Complexity of pipeline maintenance.</li>
+                <li>Cost (embedding + vector DB + LLM calls).</li>
+            </ul>
+        </div>
+    </div>
+    <hr class="divider">
+
+    <!-- 10. INTERVIEW QUESTIONS -->
+    <h2>10. Interview Questions – RAG Theory</h2>
+    <div class="qa-block"><p class="q">Q1: What is RAG and why is it needed?</p><p class="a">A: RAG combines retrieval with a generative model to inject external, up‑to‑date knowledge into prompts. It overcomes LLM limitations: static knowledge, hallucination, lack of source attribution, and inability to handle proprietary/domain‑specific data.</p></div>
+    <div class="qa-block"><p class="q">Q2: Explain the components of a typical RAG system.</p><p class="a">A: Data ingestion (chunking), embedding model, vector database, retriever, prompt template, LLM generator, and optionally a reranker and guardrails.</p></div>
+    <div class="qa-block"><p class="q">Q3: Describe two common failure modes in RAG and how you would fix them.</p><p class="a">A: 1) Retrieval failure (low recall): the correct document isn't retrieved. Fix: hybrid search, query rewriting, better embeddings, increase k. 2) Hallucination despite retrieval: LLM ignores context. Fix: strict prompt instructions, confidence filtering, faithfulness evaluation.</p></div>
+    <div class="qa-block"><p class="q">Q4: How does RAG differ from fine‑tuning for injecting knowledge?</p><p class="a">A: RAG adds knowledge at inference time via external documents, keeping the LLM unchanged. Fine‑tuning bakes knowledge into weights, which is expensive to update. RAG is better for dynamic, factual knowledge; fine‑tuning is for teaching style, tone, or task‑specific behaviour.</p></div>
+    <div class="qa-block"><p class="q">Q5: What is in‑context learning and how does it relate to RAG?</p><p class="a">A: In‑context learning provides examples or instructions directly in the prompt to guide the LLM. RAG is a specialized form: it injects retrieved documents as context. Both avoid weight updates, but RAG scales to large knowledge bases far beyond the context window.</p></div>
+    <hr class="divider">
+
+    <!-- 11. COMMON MISTAKES -->
+    <h2>11. Common Misconceptions</h2>
+    <table>
+        <tr><th>❌ Wrong Belief</th><th>✅ Correct Understanding</th></tr>
+        <tr><td>"RAG completely eliminates hallucination."</td><td>It significantly reduces hallucinations by grounding the response, but the LLM can still ignore or misinterpret context; evaluation is still required.</td></tr>
+        <tr><td>"RAG is just a vector search + LLM."</td><td>The prompt template and chunking strategy are equally critical; the whole pipeline must be engineered and evaluated.</td></tr>
+        <tr><td>"Fine‑tuning is always worse than RAG."</td><td>They are complementary: fine‑tuning can teach format and style, while RAG supplies facts. Many production systems combine both.</td></tr>
+        <tr><td>"RAG can only use one embedding model."</td><td>You can use different models for queries and documents (asymmetric embeddings) and even fine‑tune the embedding model on your domain.</td></tr>
+        <tr><td>"Chunk overlap is unnecessary."</td><td>Overlap preserves context across chunk boundaries, preventing split sentences from losing meaning.</td></tr>
+    </table>
+    <hr class="divider">
+
+    <!-- 12. EXAM CRAM FACTS -->
+    <h2>12. Exam Cram Facts (Day‑Before Revision)</h2>
+    <ol>
+        <li class="cram-bullet">RAG = Retrieval Augmented Generation: external knowledge → prompt → LLM → grounded answer.</li>
+        <li class="cram-bullet">Core pipeline: Query → Embed → Retrieve Top‑k → Augment Prompt → Generate.</li>
+        <li class="cram-bullet">Key components: chunking, embedding model, vector DB, retriever, prompt template, LLM, (optional) reranker.</li>
+        <li class="cram-bullet">RAG solves: knowledge cut‑off, hallucination, domain‑specific knowledge, lack of citations.</li>
+        <li class="cram-bullet">Main failures: retrieval recall, ranking, context ignorance, prompt injection, latency.</li>
+        <li class="cram-bullet">RAG vs Fine‑tuning: RAG is external, dynamic, transparent; fine‑tuning is internal, static, black‑box.</li>
+        <li class="cram-bullet">In‑context learning: examples in prompt; RAG extends this to external documents.</li>
+        <li class="cram-bullet">Chunk size and overlap are critical hyperparameters for retrieval quality.</li>
+        <li class="cram-bullet">Reranker reorders retrieved chunks to improve relevance for the generator.</li>
+        <li class="cram-bullet">Evaluation should cover retrieval quality, faithfulness, and end‑to‑end accuracy.</li>
+    </ol>
+    <hr class="divider">
+
+    <!-- 13. ULTRA FAST REVISION -->
+    <h2>13. Ultra‑Fast Revision (60 Seconds)</h2>
+    <div class="ultra-box">
+        <h3>⚡ RAG – 60‑Second Blitz</h3>
+        <div class="row"><strong>Definition:</strong> Hybrid system: retrieve docs → inject into prompt → LLM answers.</div>
+        <div class="row"><strong>Why needed:</strong> LLMs hallucinate, have static knowledge, lack domain expertise – RAG fixes this.</div>
+        <div class="row"><strong>How it works:</strong> Embed query, search vector DB, add retrieved chunks to prompt, generate.</div>
+        <div class="row"><strong>Components:</strong> Chunking, embedding, vector DB, retriever, prompt, LLM, reranker (opt).</div>
+        <div class="row"><strong>Failures:</strong> Bad retrieval, wrong ranking, ignoring context, prompt injection, high latency.</div>
+        <div class="row"><strong>RAG vs FT:</strong> RAG = external knowledge, instant updates; FT = internal weights, slow updates.</div>
+        <div class="row"><strong>In‑context learning:</strong> Giving examples; RAG is a scalable in‑context method for facts.</div>
+        <div class="row"><strong>Key takeaway:</strong> <strong>RAG makes LLMs factual, fresh, and auditable by pairing them with a retrieval pipeline.</strong></div>
+    </div>
+    <hr class="divider">
+    <p style="text-align:center;font-size:8pt;margin-top:8px;font-weight:700;">— END OF RAG CHEAT SHEET —</p>
+</body>
+</html>
