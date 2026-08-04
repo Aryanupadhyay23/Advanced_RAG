@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document Loaders – High‑Density Cheat Sheet</title>
+    <style>
+        :root {
+            --bg: #ffffff;
+            --text: #000000;
+            --border: #000000;
+            --box-bg: #ffffff;
+            --rule: #000000;
+            --table-border: #000000;
+            --light-border: #cccccc;
+        }
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body {
+            background: var(--bg); color: var(--text);
+            font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+            font-size: 10pt; line-height: 1.45;
+            max-width: 210mm; margin: 0 auto;
+            padding: 8mm 10mm 12mm 10mm;
+            -webkit-print-color-adjust: exact; print-color-adjust: exact;
+        }
+        @media print {
+            body { padding:8mm 10mm 12mm 10mm; font-size:9pt; }
+            @page { size: A4; margin: 0; }
+            .page-break { page-break-before: always; }
+            .no-break { page-break-inside: avoid; }
+        }
+        @media screen and (max-width:600px) {
+            body { padding:4mm 5mm; font-size:8.5pt; }
+        }
+        h1 {
+            font-size: 22pt; font-weight:900; text-align:center; letter-spacing:1.5pt;
+            text-transform:uppercase; border:3px solid var(--border); padding:10px 16px;
+            margin-bottom:6px; line-height:1.2;
+        }
+        .subtitle { text-align:center; font-size:10pt; font-style:italic; margin-bottom:12px; border-bottom:2px solid var(--border); padding-bottom:6px; }
+        h2 { font-size:14pt; font-weight:900; text-transform:uppercase; border-bottom:2.5px solid var(--border); padding-bottom:3px; margin-top:18px; margin-bottom:8px; letter-spacing:0.8pt; }
+        h3 { font-size:11.5pt; font-weight:700; margin-top:12px; margin-bottom:6px; text-transform:uppercase; letter-spacing:0.4pt; border-left:4px solid var(--border); padding-left:8px; }
+        h4 { font-size:10pt; font-weight:700; margin-top:8px; margin-bottom:4px; }
+        p { margin-bottom:4px; }
+        ul { list-style-type:square; padding-left:18px; margin-bottom:6px; }
+        ul li { margin-bottom:2px; }
+        ul.compact li { margin-bottom:1px; line-height:1.3; }
+        .formula-box {
+            border:2px solid var(--border); padding:10px 14px; margin:10px auto;
+            text-align:center; font-size:13pt; font-weight:700;
+            font-family:"Courier New", Courier, monospace; letter-spacing:0.5pt;
+            background:#fafafa; max-width:95%; word-break:break-all;
+        }
+        .formula-box.small { font-size:10pt; padding:7px 10px; }
+        .var-meaning { font-size:9pt; margin-top:4px; text-align:left; font-family:"Helvetica Neue", Helvetica, Arial, sans-serif; font-weight:400; line-height:1.4; }
+        .interpretation { font-size:9pt; font-style:italic; margin-top:3px; text-align:left; font-weight:400; font-family:"Helvetica Neue", Helvetica, Arial, sans-serif; }
+        .interview-note { font-size:8.5pt; font-weight:700; margin-top:3px; text-align:left; font-family:"Helvetica Neue", Helvetica, Arial, sans-serif; text-transform:uppercase; letter-spacing:0.3pt; }
+        table { width:100%; border-collapse:collapse; margin:8px 0 10px 0; font-size:9pt; }
+        table th { background-color:#e8e8e8; border:1.5px solid var(--border); padding:6px 7px; text-align:left; font-weight:700; text-transform:uppercase; letter-spacing:0.3pt; font-size:8.5pt; }
+        table td { border:1px solid var(--light-border); padding:5px 7px; vertical-align:top; }
+        .compact-table td, .compact-table th { padding:3px 5px; font-size:8.5pt; }
+        .divider { border:none; border-top:2px solid var(--border); margin:14px 0; }
+        .divider-thin { border:none; border-top:1px solid var(--light-border); margin:8px 0; }
+        .two-col { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin:6px 0; }
+        @media screen and (max-width:600px) { .two-col { grid-template-columns:1fr; } }
+        .highlight-box { border:2px dashed var(--border); padding:8px 12px; margin:8px 0; background:#fdfdfd; }
+        .flow-arrow { text-align:center; font-weight:900; font-size:10pt; margin:2px 0; letter-spacing:1pt; }
+        .qa-block { margin:6px 0; padding-left:8px; border-left:3px solid var(--border); }
+        .qa-block .q { font-weight:700; font-size:10pt; }
+        .qa-block .a { font-size:9.5pt; margin-left:4px; }
+        .cram-bullet { font-size:9pt; margin-bottom:2px; line-height:1.35; }
+        .ultra-box { border:3px solid var(--border); padding:10px 14px; margin:12px 0; background:#fafafa; }
+        .ultra-box h3 { border-left:none; text-align:center; font-size:13pt; margin-top:0; padding-left:0; }
+        .ultra-box .row { display:flex; flex-wrap:wrap; gap:4px 12px; margin:3px 0; font-size:9.5pt; }
+        .ultra-box .row strong { min-width:130px; display:inline-block; font-size:9pt; text-transform:uppercase; letter-spacing:0.3pt; }
+    </style>
+</head>
+<body>
+
+    <h1>Document Loaders</h1>
+    <p class="subtitle">Ingesting data from diverse sources – PDFs, web pages, databases, and more – into LLM‑ready text chunks.</p>
+
+    <!-- 1. CORE IDEA -->
+    <h2>1. Core Idea</h2>
+    <ul>
+        <li><strong>What are they?</strong> Document loaders are connectors that read data from a variety of file formats and data sources, extract raw text and metadata, and return a standardized list of <code>Document</code> objects ready for chunking and embedding.</li>
+        <li><strong>Why are they needed?</strong> LLM applications (especially RAG) require text content from many heterogeneous sources (PDFs, web pages, databases, etc.). Document loaders abstract away the complexity of parsing different formats.</li>
+        <li><strong>Key abstraction:</strong> Every loader returns a list of <code>Document</code> objects, where each document has <code>page_content</code> (text) and <code>metadata</code> (source, page number, etc.). This provides a uniform interface for downstream processing.</li>
+        <li><strong>Common libraries:</strong> LangChain, LlamaIndex, Unstructured.io – each provides dozens of pre‑built loaders for specific data types.</li>
+    </ul>
+    <hr class="divider">
+
+    <!-- 2. TYPES OF DOCUMENT LOADERS (COMPREHENSIVE) -->
+    <h2>2. Types of Document Loaders</h2>
+
+    <h3>2.1 File‑Based Loaders (Local & Cloud)</h3>
+    <table>
+        <tr><th>Format</th><th>Loader</th><th>Key Features / Parameters</th><th>Common Challenges</th></tr>
+        <tr>
+            <td><strong>PDF</strong></td>
+            <td><code>PyPDFLoader</code>, <code>PDFMinerLoader</code>, <code>UnstructuredPDFLoader</code></td>
+            <td>Extract text page‑by‑page; metadata includes page number. Can handle selectable text, but not scanned images (OCR required).</td>
+            <td>Complex layouts (tables, columns), embedded images, scanned PDFs need OCR (e.g., <code>UnstructuredImagePDFLoader</code> + Tesseract).</td>
+        </tr>
+        <tr>
+            <td><strong>CSV</strong></td>
+            <td><code>CSVLoader</code></td>
+            <td>Loads each row as a separate document; column values are concatenated or accessible via metadata. Optionally specify delimiter, encoding.</td>
+            <td>Large CSVs can produce many small documents; may need aggregation or metadata filtering.</td>
+        </tr>
+        <tr>
+            <td><strong>Text / Markdown</strong></td>
+            <td><code>TextLoader</code>, <code>UnstructuredMarkdownLoader</code></td>
+            <td>Simple file read; preserves formatting. Markdown loader can split by headers or sections.</td>
+            <td>Minimal; encoding issues (UTF‑8 vs others).</td>
+        </tr>
+        <tr>
+            <td><strong>JSON / JSONL</strong></td>
+            <td><code>JSONLoader</code>, <code>JSONLinesLoader</code></td>
+            <td>Extract content from specific keys using JSON pointer (e.g., <code>/content</code>); metadata from other fields.</td>
+            <td>Nested structures need careful jq‑style specification; arrays may be flattened.</td>
+        </tr>
+        <tr>
+            <td><strong>HTML</strong></td>
+            <td><code>UnstructuredHTMLLoader</code>, <code>BSHTMLLoader</code></td>
+            <td>Strips HTML tags and extracts plain text; optionally retains structure (titles, paragraphs).</td>
+            <td>Dynamic pages (JavaScript‑rendered) require headless browser (e.g., Playwright/Selenium).</td>
+        </tr>
+        <tr>
+            <td><strong>Word / PowerPoint</strong></td>
+            <td><code>Docx2txtLoader</code>, <code>UnstructuredWordDocumentLoader</code>, <code>UnstructuredPowerPointLoader</code></td>
+            <td>Extracts text from Office documents; preserves headings, bullet points, and slide structure.</td>
+            <td>Embedded objects (charts, images) are ignored; text ordering can be complex.</td>
+        </tr>
+        <tr>
+            <td><strong>Images (OCR)</strong></td>
+            <td><code>UnstructuredImageLoader</code> (with Tesseract or cloud OCR)</td>
+            <td>Optical Character Recognition on images; returns extracted text. Requires additional dependencies.</td>
+            <td>Accuracy depends on image quality; multiple languages; layout detection (tables).</td>
+        </tr>
+    </table>
+
+    <h3>2.2 Cloud / SaaS Loaders</h3>
+    <table>
+        <tr><th>Source</th><th>Loader</th><th>Authentication</th><th>Notes</th></tr>
+        <tr>
+            <td><strong>Google Drive / Docs</strong></td>
+            <td><code>GoogleDriveLoader</code></td>
+            <td>Service account / OAuth token</td>
+            <td>Can load specific files/folders by ID; Google Docs are exported as text.</td>
+        </tr>
+        <tr>
+            <td><strong>Notion</strong></td>
+            <td><code>NotionDirectoryLoader</code></td>
+            <td>Integration token</td>
+            <td>Exports all blocks (pages, databases) as Markdown; preserves hierarchy.</td>
+        </tr>
+        <tr>
+            <td><strong>Amazon S3</strong></td>
+            <td><code>S3FileLoader</code>, <code>S3DirectoryLoader</code></td>
+            <td>AWS credentials (env / IAM)</td>
+            <td>Filter by bucket, prefix, file extension; recursively load directories.</td>
+        </tr>
+        <tr>
+            <td><strong>Confluence</strong></td>
+            <td><code>ConfluenceLoader</code></td>
+            <td>API token / OAuth</td>
+            <td>Loads pages by space, label, or CQL query; can include attachments.</td>
+        </tr>
+        <tr>
+            <td><strong>SharePoint</strong></td>
+            <td><code>SharePointLoader</code></td>
+            <td>Client credentials / certificate</td>
+            <td>Load files from document libraries; requires Azure AD app registration.</td>
+        </tr>
+    </table>
+
+    <h3>2.3 Web / API Loaders</h3>
+    <table>
+        <tr><th>Type</th><th>Loader</th><th>Key Parameter</th><th>Caveats</th></tr>
+        <tr>
+            <td><strong>Generic Web</strong></td>
+            <td><code>WebBaseLoader</code>, <code>RecursiveUrlLoader</code></td>
+            <td>URL, max_depth, exclude_dirs</td>
+            <td>Respects <code>robots.txt</code>? Rate limiting may be needed; JS‑rendered pages require browser‑based loader (<code>PlaywrightURLLoader</code>).</td>
+        </tr>
+        <tr>
+            <td><strong>YouTube</strong></td>
+            <td><code>YoutubeLoader</code></td>
+            <td>Video URL, language</td>
+            <td>Downloads transcript (auto‑generated or manual); not visual content.</td>
+        </tr>
+        <tr>
+            <td><strong>GitHub</strong></td>
+            <td><code>GitHubRepoLoader</code>, <code>GitLoader</code></td>
+            <td>Repo URL, branch, file_filter</td>
+            <td>Loads all files in a repo; can filter by extension (e.g., <code>*.py</code>).</td>
+        </tr>
+        <tr>
+            <td><strong>RSS / News</strong></td>
+            <td><code>RSSFeedLoader</code>, <code>NewsURLLoader</code></td>
+            <td>Feed URL, number of articles</td>
+            <td>Dynamic content; feed may include full text or only summaries.</td>
+        </tr>
+    </table>
+
+    <h3>2.4 Database / Enterprise Loaders</h3>
+    <table>
+        <tr><th>Source</th><th>Loader</th><th>Query / Configuration</th></tr>
+        <tr>
+            <td><strong>SQL Databases</strong></td>
+            <td><code>SQLDatabaseLoader</code>, <code>SQLAlchemyLoader</code></td>
+            <td>Connection string, SQL query; each row becomes a document.</td>
+        </tr>
+        <tr>
+            <td><strong>MongoDB</strong></td>
+            <td><code>MongoDBLoader</code></td>
+            <td>Connection string, collection name, filter query.</td>
+        </tr>
+        <tr>
+            <td><strong>Elasticsearch</strong></td>
+            <td><code>ElasticsearchLoader</code></td>
+            <td>Index name, query DSL; returns documents from ES.</td>
+        </tr>
+        <tr>
+            <td><strong>Salesforce</strong></td>
+            <td><code>SalesforceLoader</code></td>
+            <td>SOQL query; API credentials.</td>
+        </tr>
+    </table>
+    <hr class="divider">
+
+    <!-- 3. KEY CONCEPTS & PARAMETERS -->
+    <h2>3. Key Concepts & Common Parameters</h2>
+    <table>
+        <tr><th>Concept</th><th>Description</th><th>Example</th></tr>
+        <tr><td><strong>Metadata</strong></td><td>Each loaded document carries a <code>metadata</code> dict with source info (filename, page, URL, creation date). Used later for citation, filtering, and deduplication.</td><td><code>{"source": "annual_report.pdf", "page": 5}</code></td></tr>
+        <tr><td><strong>Encoding</strong></td><td>Specify text encoding (UTF‑8, Latin‑1) to avoid garbled characters. Most loaders accept an <code>encoding</code> parameter.</td><td><code>TextLoader("file.txt", encoding="utf-8")</code></td></tr>
+        <tr><td><strong>Lazy Loading</strong></td><td>Some loaders support lazy loading, yielding documents one at a time instead of loading everything into memory. Ideal for very large datasets.</td><td><code>loader.lazy_load()</code></td></tr>
+        <tr><td><strong>File Filtering</strong></td><td>Glob pattern or function to include/exclude files when loading directories.</td><td><code>glob="**/*.pdf"</code>, <code>exclude=["*.tmp"]</code></td></tr>
+        <tr><td><strong>Mode / Strategy</strong></td><td>For PDFs, choose between "single" (entire file as one doc), "page" (each page separate), or "elements" (per paragraph/table). Provided by Unstructured library.</td><td><code>mode="elements"</code></td></tr>
+    </table>
+    <hr class="divider">
+
+    <!-- 4. WORKFLOW: LOADER → CHUNKING -->
+    <h2>4. Document Loader → Chunking Pipeline</h2>
+    <div class="no-break">
+        <div class="flow-arrow">RAW DATA SOURCE (file, web, DB, cloud)</div>
+        <div class="flow-arrow">↓</div>
+        <div class="flow-arrow">SELECT APPROPRIATE LOADER (based on format)</div>
+        <div class="flow-arrow">↓</div>
+        <div class="flow-arrow">LOAD DOCUMENTS: returns <code>List[Document]</code></div>
+        <div class="flow-arrow">↓</div>
+        <div class="flow-arrow">(Optional) ENRICH METADATA (add timestamps, custom fields)</div>
+        <div class="flow-arrow">↓</div>
+        <div class="flow-arrow">(Optional) CLEAN TEXT (remove extra whitespace, boilerplate)</div>
+        <div class="flow-arrow">↓</div>
+        <div class="flow-arrow">PASS TO TEXT SPLITTER (chunking) for embedding & indexing</div>
+    </div>
+    <hr class="divider">
+
+    <!-- 5. COMMON CHALLENGES & BEST PRACTICES -->
+    <h2>5. Common Challenges & Best Practices</h2>
+    <table>
+        <tr><th>Challenge</th><th>Best Practice</th></tr>
+        <tr><td><strong>Multi‑format ingestion</strong></td><td>Use Unstructured library or a factory pattern; detect file type by extension and route to appropriate loader.</td></tr>
+        <tr><td><strong>Very large files</strong></td><td>Use lazy loading; stream documents to a queue; avoid loading entire dataset into memory.</td></tr>
+        <tr><td><strong>Scanned PDFs / images</strong></td><td>Use OCR‑enabled loaders (Unstructured + Tesseract). Pre‑process images (deskew, denoise) for better accuracy.</td></tr>
+        <tr><td><strong>Dynamic web content</strong></td><td>For JS‑heavy pages, use a headless browser loader (Playwright, Selenium) instead of simple HTTP fetch.</td></tr>
+        <tr><td><strong>Structured data (tables)</strong></td><td>Convert tables to text descriptions or use dedicated table parsers; consider adding row/column metadata.</td></tr>
+        <tr><td><strong>Deduplication</strong></td><td>Use content hash or document ID stored in metadata; filter duplicates before chunking.</td></tr>
+        <tr><td><strong>Authentication</strong></td><td>Store API keys / tokens securely (environment variables, vaults); never hardcode.</td></tr>
+        <tr><td><strong>Rate limiting (APIs)</strong></td><td>Implement retry with exponential backoff; respect rate limits to avoid bans.</td></tr>
+    </table>
+    <hr class="divider">
+
+    <!-- 6. INTERVIEW QUESTIONS -->
+    <h2>6. Interview Questions</h2>
+    <div class="qa-block"><p class="q">Q1: What is the role of a document loader in a RAG pipeline?</p><p class="a">A: It reads raw data from various sources (PDF, web, DB) and converts it into a standardized list of <code>Document</code> objects (text + metadata) that can be chunked, embedded, and indexed for retrieval.</p></div>
+    <div class="qa-block"><p class="q">Q2: How would you handle a PDF with complex tables and images?</p><p class="a">A: Use a loader like <code>UnstructuredPDFLoader</code> with <code>mode="elements"</code> which segments text into paragraphs, tables, and figures. For tables, use a dedicated table parser (e.g., Camelot, Tabula) or capture as CSV. For images, use OCR.</p></div>
+    <div class="qa-block"><p class="q">Q3: What is lazy loading and when is it useful?</p><p class="a">A: Lazy loading yields documents one at a time instead of loading all into memory at once. It’s crucial when dealing with very large datasets (e.g., millions of rows in a CSV) to avoid out‑of‑memory errors.</p></div>
+    <div class="qa-block"><p class="q">Q4: How do you ensure that a web page’s dynamic content is captured?</p><p class="a">A: Use a browser‑based loader like <code>PlaywrightURLLoader</code> or <code>SeleniumURLLoader</code> which render JavaScript. For single‑page apps, wait for specific elements to appear before extracting text.</p></div>
+    <div class="qa-block"><p class="q">Q5: What metadata should you include in documents, and why?</p><p class="a">A: Include source (file path/URL), page number (for PDF), creation date, author, and any domain‑specific tags. Metadata enables filtering, citation, and better retrieval relevance.</p></div>
+    <hr class="divider">
+
+    <!-- 7. COMMON MISTAKES -->
+    <h2>7. Common Mistakes</h2>
+    <table>
+        <tr><th>❌ Wrong Practice</th><th>✅ Correct Approach</th></tr>
+        <tr><td>Using a simple text loader for PDFs.</td><td>Use a PDF‑aware loader (<code>PyPDFLoader</code>, <code>PDFMinerLoader</code>) to preserve page structure and metadata.</td></tr>
+        <tr><td>Ignoring encoding issues; assuming UTF‑8.</td><td>Always specify encoding or use <code>chardet</code> to detect encoding automatically.</td></tr>
+        <tr><td>Loading everything into memory at once for large datasets.</td><td>Use lazy loading and stream documents; process in batches.</td></tr>
+        <tr><td>Not extracting metadata (e.g., source, page).</td><td>Leverage the loader’s built‑in metadata extraction; enrich with custom fields for filtering.</td></tr>
+        <tr><td>Using a generic web loader for authentication‑protected pages.</td><td>Use loaders that accept cookies, headers, or OAuth tokens (<code>WebBaseLoader</code> with session).</td></tr>
+    </table>
+    <hr class="divider">
+
+    <!-- 8. EXAM CRAM FACTS -->
+    <h2>8. Exam Cram Facts (Day‑Before Revision)</h2>
+    <ol>
+        <li class="cram-bullet">Document loaders abstract data ingestion, returning <code>Document</code> objects (text + metadata).</li>
+        <li class="cram-bullet">Common loaders: <code>PyPDFLoader</code> (PDF), <code>CSVLoader</code> (CSV), <code>TextLoader</code>, <code>UnstructuredHTMLLoader</code>, <code>JSONLoader</code>.</li>
+        <li class="cram-bullet">Unstructured library provides mode="elements" for PDFs and rich extraction of tables, titles, etc.</li>
+        <li class="cram-bullet">For scanned PDFs/images, use OCR loaders (e.g., Unstructured + Tesseract).</li>
+        <li class="cram-bullet">Web loaders: <code>WebBaseLoader</code> (static), <code>PlaywrightURLLoader</code> (dynamic).</li>
+        <li class="cram-bullet">Lazy loading avoids memory issues with huge files.</li>
+        <li class="cram-bullet">Always capture metadata: source, page, date, author → enables filtering and citation.</li>
+        <li class="cram-bullet">Authentication for cloud loaders: use environment variables, not hardcoded keys.</li>
+        <li class="cram-bullet">Standard pipeline: Load → (Clean) → (Enrich metadata) → Chunk → Embed → Index.</li>
+        <li class="cram-bullet">A single loader may not cover all formats; use a factory pattern to route based on file extension.</li>
+    </ol>
+    <hr class="divider">
+
+    <!-- 9. ULTRA FAST REVISION -->
+    <h2>9. Ultra‑Fast Revision (60 Seconds)</h2>
+    <div class="ultra-box">
+        <h3>⚡ Document Loaders – 60‑Second Blitz</h3>
+        <div class="row"><strong>Purpose:</strong> Convert heterogeneous data into uniform <code>Document</code> objects (text + metadata).</div>
+        <div class="row"><strong>Key types:</strong> File loaders (PDF, CSV, HTML), cloud (Google Drive, S3), web, database.</div>
+        <div class="row"><strong>Metadata:</strong> Always extract source, page, date, author – used for citation and filtering.</div>
+        <div class="row"><strong>PDF handling:</strong> Use PyPDFLoader or Unstructured; use OCR for scanned docs.</div>
+        <div class="row"><strong>Web:</strong> Static pages → WebBaseLoader; dynamic JS → PlaywrightURLLoader.</div>
+        <div class="row"><strong>Large data:</strong> Use lazy loading; avoid loading entire dataset into memory.</div>
+        <div class="row"><strong>Common pitfall:</strong> Ignoring encoding; not extracting metadata.</div>
+        <div class="row"><strong>Pipeline:</strong> Load → clean → enrich → chunk → embed → index.</div>
+        <div class="row"><strong>Golden rule:</strong> <strong>Pick the right loader for the source; always preserve metadata for downstream retrieval and citation.</strong></div>
+    </div>
+    <hr class="divider">
+    <p style="text-align:center;font-size:8pt;margin-top:8px;font-weight:700;">— END OF DOCUMENT LOADERS CHEAT SHEET —</p>
+</body>
+</html>

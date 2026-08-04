@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Text Splitters – High‑Density Cheat Sheet</title>
+    <style>
+        :root {
+            --bg: #ffffff;
+            --text: #000000;
+            --border: #000000;
+            --box-bg: #ffffff;
+            --rule: #000000;
+            --table-border: #000000;
+            --light-border: #cccccc;
+        }
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body {
+            background: var(--bg); color: var(--text);
+            font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+            font-size: 10pt; line-height: 1.45;
+            max-width: 210mm; margin: 0 auto;
+            padding: 8mm 10mm 12mm 10mm;
+            -webkit-print-color-adjust: exact; print-color-adjust: exact;
+        }
+        @media print {
+            body { padding:8mm 10mm 12mm 10mm; font-size:9pt; }
+            @page { size: A4; margin: 0; }
+            .page-break { page-break-before: always; }
+            .no-break { page-break-inside: avoid; }
+        }
+        @media screen and (max-width:600px) {
+            body { padding:4mm 5mm; font-size:8.5pt; }
+        }
+        h1 {
+            font-size: 22pt; font-weight:900; text-align:center; letter-spacing:1.5pt;
+            text-transform:uppercase; border:3px solid var(--border); padding:10px 16px;
+            margin-bottom:6px; line-height:1.2;
+        }
+        .subtitle { text-align:center; font-size:10pt; font-style:italic; margin-bottom:12px; border-bottom:2px solid var(--border); padding-bottom:6px; }
+        h2 { font-size:14pt; font-weight:900; text-transform:uppercase; border-bottom:2.5px solid var(--border); padding-bottom:3px; margin-top:18px; margin-bottom:8px; letter-spacing:0.8pt; }
+        h3 { font-size:11.5pt; font-weight:700; margin-top:12px; margin-bottom:6px; text-transform:uppercase; letter-spacing:0.4pt; border-left:4px solid var(--border); padding-left:8px; }
+        h4 { font-size:10pt; font-weight:700; margin-top:8px; margin-bottom:4px; }
+        p { margin-bottom:4px; }
+        ul { list-style-type:square; padding-left:18px; margin-bottom:6px; }
+        ul li { margin-bottom:2px; }
+        ul.compact li { margin-bottom:1px; line-height:1.3; }
+        .formula-box {
+            border:2px solid var(--border); padding:10px 14px; margin:10px auto;
+            text-align:center; font-size:13pt; font-weight:700;
+            font-family:"Courier New", Courier, monospace; letter-spacing:0.5pt;
+            background:#fafafa; max-width:95%; word-break:break-all;
+        }
+        .formula-box.small { font-size:10pt; padding:7px 10px; }
+        .var-meaning { font-size:9pt; margin-top:4px; text-align:left; font-family:"Helvetica Neue", Helvetica, Arial, sans-serif; font-weight:400; line-height:1.4; }
+        .interpretation { font-size:9pt; font-style:italic; margin-top:3px; text-align:left; font-weight:400; font-family:"Helvetica Neue", Helvetica, Arial, sans-serif; }
+        .interview-note { font-size:8.5pt; font-weight:700; margin-top:3px; text-align:left; font-family:"Helvetica Neue", Helvetica, Arial, sans-serif; text-transform:uppercase; letter-spacing:0.3pt; }
+        table { width:100%; border-collapse:collapse; margin:8px 0 10px 0; font-size:9pt; }
+        table th { background-color:#e8e8e8; border:1.5px solid var(--border); padding:6px 7px; text-align:left; font-weight:700; text-transform:uppercase; letter-spacing:0.3pt; font-size:8.5pt; }
+        table td { border:1px solid var(--light-border); padding:5px 7px; vertical-align:top; }
+        .compact-table td, .compact-table th { padding:3px 5px; font-size:8.5pt; }
+        .divider { border:none; border-top:2px solid var(--border); margin:14px 0; }
+        .divider-thin { border:none; border-top:1px solid var(--light-border); margin:8px 0; }
+        .two-col { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin:6px 0; }
+        @media screen and (max-width:600px) { .two-col { grid-template-columns:1fr; } }
+        .highlight-box { border:2px dashed var(--border); padding:8px 12px; margin:8px 0; background:#fdfdfd; }
+        .flow-arrow { text-align:center; font-weight:900; font-size:10pt; margin:2px 0; letter-spacing:1pt; }
+        .qa-block { margin:6px 0; padding-left:8px; border-left:3px solid var(--border); }
+        .qa-block .q { font-weight:700; font-size:10pt; }
+        .qa-block .a { font-size:9.5pt; margin-left:4px; }
+        .cram-bullet { font-size:9pt; margin-bottom:2px; line-height:1.35; }
+        .ultra-box { border:3px solid var(--border); padding:10px 14px; margin:12px 0; background:#fafafa; }
+        .ultra-box h3 { border-left:none; text-align:center; font-size:13pt; margin-top:0; padding-left:0; }
+        .ultra-box .row { display:flex; flex-wrap:wrap; gap:4px 12px; margin:3px 0; font-size:9.5pt; }
+        .ultra-box .row strong { min-width:130px; display:inline-block; font-size:9pt; text-transform:uppercase; letter-spacing:0.3pt; }
+    </style>
+</head>
+<body>
+
+    <h1>Text Splitters</h1>
+    <p class="subtitle">Chunking strategies for RAG – breaking documents into embedding‑friendly pieces while preserving semantic coherence.</p>
+
+    <!-- 1. CORE IDEA -->
+    <h2>1. Core Idea</h2>
+    <ul>
+        <li><strong>What is a text splitter?</strong> A component that divides a long document into smaller, self‑contained chunks so that each chunk can be embedded and retrieved effectively. It’s the bridge between document loading and vector indexing.</li>
+        <li><strong>Why is it needed?</strong> LLMs have a context window limit; embedding models work best on short, focused text. Splitting ensures each chunk fits within the model’s limits and carries a coherent piece of information.</li>
+        <li><strong>Key trade‑off:</strong> Chunk size – too large: exceeds context window, dilutes relevance. Too small: loses context, splits sentences/ideas mid‑way, leading to poor retrieval.</li>
+        <li><strong>Core parameters:</strong> <code>chunk_size</code> (target length), <code>chunk_overlap</code> (how much adjacent chunks share to preserve continuity), <code>length_function</code> (character‑based or token‑based).</li>
+    </ul>
+    <hr class="divider">
+
+    <!-- 2. MENTAL MODEL -->
+    <h2>2. Mental Model</h2>
+    <div class="two-col">
+        <div>
+            <h4>🔹 The “Encyclopedia Slice”</h4>
+            <p>You have a massive encyclopedia. You can't read it all at once, so you cut it into cards (chunks). Each card should contain a complete idea (a paragraph or section) so that when you search for “rainfall”, you get a card about rain, not half a sentence about rain and half about sunshine.</p>
+        </div>
+        <div>
+            <h4>🔹 The “Sliding Window Over Text”</h4>
+            <p>Imagine a sliding window that moves across the text by a fixed step size. The window captures a chunk, then slides forward by (chunk_size – overlap), ensuring that the last few sentences of one chunk reappear at the start of the next – preserving continuity for nearby chunks.</p>
+        </div>
+    </div>
+    <hr class="divider">
+
+    <!-- 3. KEY CONCEPTS -->
+    <h2>3. Key Concepts</h2>
+    <table>
+        <tr><th>Concept</th><th>Description</th><th>Importance</th></tr>
+        <tr><td><strong>Chunk Size</strong></td><td>The target number of characters (or tokens) per chunk. The splitter tries to keep chunks near this limit while respecting natural boundaries.</td><td>Directly affects retrieval granularity. Too large → noisy context; too small → fragmented meaning.</td></tr>
+        <tr><td><strong>Chunk Overlap</strong></td><td>The number of characters (or tokens) shared between consecutive chunks. Creates a buffer zone so that context across chunk boundaries is not lost.</td><td>Prevents splitting an entity or fact exactly at the boundary; improves retrieval recall.</td></tr>
+        <tr><td><strong>Length Function</strong></td><td>How the chunk length is measured – most commonly <code>len()</code> (character count) or a tokenizer‑based function (e.g., <code>tiktoken</code> token count).</td><td>Token‑based splitting is more accurate for LLM context windows; character‑based is simpler and faster.</td></tr>
+        <tr><td><strong>Separators</strong></td><td>A list of characters/strings used to find natural break points. The splitter tries to split in order: paragraph (<code>\n\n</code>), sentence (<code>.</code>, <code>?</code>, <code>!</code>), word (<code> </code>), character.</td><td>Maintains linguistic coherence; avoids breaking mid‑word or mid‑sentence unless necessary.</td></tr>
+        <tr><td><strong>Semantic Splitting</strong></td><td>Use embeddings and similarity thresholds to detect topic shifts and split at those boundaries, creating chunks that represent distinct subtopics.</td><td>Produces more meaningful chunks than fixed‑size splitting, but is computationally heavier.</td></tr>
+    </table>
+    <hr class="divider">
+
+    <!-- 4. TYPES OF TEXT SPLITTERS -->
+    <h2>4. Types of Text Splitters</h2>
+    <table>
+        <tr><th>Splitter</th><th>How It Works</th><th>Best For</th><th>Example (LangChain)</th></tr>
+        <tr>
+            <td><strong>Recursive Character Text Splitter</strong></td>
+            <td>Recursively splits text using a hierarchy of separators: double newline, single newline, space, empty string. Tries to keep chunks below <code>chunk_size</code> by splitting at the most semantic boundary first.</td>
+            <td>General‑purpose documents; preserves paragraphs and sentences.</td>
+            <td><code>RecursiveCharacterTextSplitter</code></td>
+        </tr>
+        <tr>
+            <td><strong>Token Text Splitter</strong></td>
+            <td>Uses a tokenizer (e.g., <code>tiktoken</code> for OpenAI models) to count tokens and split based on token count, not characters.</td>
+            <td>When precise token limits are critical for the target LLM.</td>
+            <td><code>TokenTextSplitter</code></td>
+        </tr>
+        <tr>
+            <td><strong>Markdown Header Text Splitter</strong></td>
+            <td>Splits a Markdown document by headers (H1, H2, H3…) and attaches header information as metadata to each chunk. Chunks are kept together under a header until the size limit.</td>
+            <td>Structured documentation, READMEs, wikis.</td>
+            <td><code>MarkdownHeaderTextSplitter</code></td>
+        </tr>
+        <tr>
+            <td><strong>HTML Section Splitter</strong></td>
+            <td>Parses HTML and splits by tags (e.g., <code>&lt;section&gt;</code>, <code>&lt;article&gt;</code>, headings) while preserving the document structure.</td>
+            <td>Web‑scraped content, technical documentation.</td>
+            <td><code>HTMLHeaderTextSplitter</code></td>
+        </tr>
+        <tr>
+            <td><strong>Code Text Splitter</strong></td>
+            <td>Language‑aware splitter for code (Python, JS, etc.) that respects syntax – splits by functions, classes, and logical blocks.</td>
+            <td>Code repositories for code‑generation or code‑explanation RAG.</td>
+            <td><code>RecursiveCharacterTextSplitter.from_language()</code></td>
+        </tr>
+        <tr>
+            <td><strong>Semantic Splitter</strong></td>
+            <td>Computes embeddings for sentences, then groups them into chunks by detecting significant drops in cosine similarity between consecutive sentences. Requires an embedding model.</td>
+            <td>Long, unstructured documents with topical shifts.</td>
+            <td><code>SemanticChunker</code> (LangChain experimental)</td>
+        </tr>
+    </table>
+    <hr class="divider">
+
+    <!-- 5. WORKFLOW: TEXT SPLITTING PIPELINE -->
+    <h2>5. Text Splitting Workflow</h2>
+    <div class="no-break">
+        <div class="flow-arrow">RAW DOCUMENTS (loaded by Document Loaders) → List of <code>Document</code> objects with <code>page_content</code></div>
+        <div class="flow-arrow">↓</div>
+        <div class="flow-arrow">SELECT SPLITTER TYPE (recursive, token‑based, semantic, etc.)</div>
+        <div class="flow-arrow">↓</div>
+        <div class="flow-arrow">CONFIGURE PARAMETERS: <code>chunk_size</code>, <code>chunk_overlap</code>, <code>length_function</code>, <code>separators</code></div>
+        <div class="flow-arrow">↓</div>
+        <div class="flow-arrow">APPLY SPLITTER: <code>split_documents(documents)</code> or <code>split_text(text)</code></div>
+        <div class="flow-arrow">↓</div>
+        <div class="flow-arrow">OBTAIN CHUNKS: List of new <code>Document</code> objects, each with <code>page_content</code> (chunk) and preserved/inherited metadata</div>
+        <div class="flow-arrow">↓</div>
+        <div class="flow-arrow">(Optional) FILTER small chunks (e.g., remove chunks with &lt; 10 tokens)</div>
+        <div class="flow-arrow">↓</div>
+        <div class="flow-arrow">PASS TO EMBEDDING & VECTOR STORE INDEXING</div>
+    </div>
+    <hr class="divider">
+
+    <!-- 6. PARAMETER TUNING GUIDELINES -->
+    <h2>6. Key Parameters & Tuning</h2>
+    <table>
+        <tr><th>Parameter</th><th>Typical Range</th><th>Effect of Increase</th><th>Guidance</th></tr>
+        <tr><td><code>chunk_size</code></td><td>256 – 2048 tokens (or 1000–4000 chars)</td><td>More context per chunk; better for complex questions, but can dilute relevance.</td><td>Start with 512 tokens; evaluate retrieval precision.</td></tr>
+        <tr><td><code>chunk_overlap</code></td><td>10% – 20% of chunk_size</td><td>Better continuity across boundaries; reduces chance of missing split facts. Increases total number of chunks and embedding cost.</td><td>Set to 10–15% of chunk_size. Avoid zero overlap.</td></tr>
+        <tr><td><code>separators</code></td><td><code>["\n\n", "\n", ". ", "! ", "? ", " ", ""]</code></td><td>More semantic boundaries preferred; splitting at coarser levels preserves meaning but may exceed chunk_size.</td><td>Keep the default hierarchy; for code, use language‑specific separators.</td></tr>
+        <tr><td><code>length_function</code></td><td><code>len</code> (chars) or <code>tiktoken_len</code></td><td>Token‑based is more accurate for LLM limits, but slightly slower. Character‑based is faster but may miscount.</td><td>Use token‑based for production; character‑based for quick prototyping.</td></tr>
+    </table>
+    <hr class="divider">
+
+    <!-- 7. CHALLENGES & SOLUTIONS -->
+    <h2>7. Common Challenges & Mitigations</h2>
+    <table>
+        <tr><th>Challenge</th><th>Description</th><th>Solution</th></tr>
+        <tr><td><strong>Splitting mid‑entity</strong></td><td>A critical fact (e.g., “Machine Learning course is 8 weeks”) gets split across two chunks, making each chunk incomplete.</td><td>Use overlap; increase overlap to at least 50% of the expected fact length. Consider semantic splitting.</td></tr>
+        <tr><td><strong>Table / list disruption</strong></td><td>Tables lose structure when split; a row may be separated from its header.</td><td>Use a table‑aware splitter or pre‑process tables into markdown/CSV. Attach table header as metadata or prepend to each chunk.</td></tr>
+        <tr><td><strong>Large chunk exceeding model limit</strong></td><td>A single paragraph or code block is too long and cannot be split without losing meaning.</td><td>Allow chunk_size overflow with a hard maximum; use summarization for very large blocks.</td></tr>
+        <tr><td><strong>Inconsistent chunk sizes</strong></td><td>Some chunks are very small (e.g., just a title or a single line), leading to noisy embeddings.</td><td>Filter out chunks below a minimum token count (e.g., <code>min_chunk_size=20</code>).</td></tr>
+        <tr><td><strong>Multilingual text</strong></td><td>Separators (e.g., ". ") may not work for languages with different punctuation (e.g., Chinese, Japanese).</td><td>Use language‑specific splitters or regex‑based separators. Token‑based splitting with a multilingual tokenizer is robust.</td></tr>
+    </table>
+    <hr class="divider">
+
+    <!-- 8. ADVANTAGES & DISADVANTAGES OF EACH TYPE -->
+    <h2>8. Trade‑offs: Fixed‑Size vs. Recursive vs. Semantic</h2>
+    <table>
+        <tr><th>Strategy</th><th>Pros</th><th>Cons</th></tr>
+        <tr><td><strong>Fixed‑Size (character)</strong></td><td>Simple, fast, predictable chunk lengths.</td><td>Often breaks sentences/words; poor semantic coherence.</td></tr>
+        <tr><td><strong>Recursive Character</strong></td><td>Respects natural boundaries (paragraphs, sentences); good general‑purpose choice.</td><td>Still may break at sentence boundaries if chunk_size is too small.</td></tr>
+        <tr><td><strong>Token‑Based</strong></td><td>Accurate for LLM token limits; can combine with recursive splitting.</td><td>Requires a tokenizer; slightly slower; same semantic weaknesses as recursive.</td></tr>
+        <tr><td><strong>Semantic</strong></td><td>Chunks are thematically coherent; handles topic shifts gracefully.</td><td>Computationally expensive (needs embeddings); harder to control exact chunk size.</td></tr>
+        <tr><td><strong>Structure‑Aware (Markdown, HTML, Code)</strong></td><td>Preserves document hierarchy; adds metadata; ideal for structured content.</td><td>Limited to specific formats; may produce very uneven chunk sizes.</td></tr>
+    </table>
+    <hr class="divider">
+
+    <!-- 9. INTERVIEW QUESTIONS -->
+    <h2>9. Interview Questions</h2>
+    <div class="qa-block"><p class="q">Q1: Why is text splitting necessary in a RAG pipeline?</p><p class="a">A: Because raw documents are too long for embedding models (which have token limits) and for LLM context windows. Splitting breaks them into manageable, searchable chunks that retain local context and can be independently embedded and retrieved.</p></div>
+    <div class="qa-block"><p class="q">Q2: Explain the difference between character‑based and token‑based splitting.</p><p class="a">A: Character‑based splitting measures length by the number of characters (using <code>len()</code>), while token‑based uses an actual tokenizer (like <code>tiktoken</code>) to count tokens, which is more aligned with how LLMs process text. Token‑based is more accurate for staying within context windows.</p></div>
+    <div class="qa-block"><p class="q">Q3: What is the role of overlap in text splitting? Can overlap ever be harmful?</p><p class="a">A: Overlap ensures that information near chunk boundaries is duplicated in adjacent chunks, preventing a query from missing a fact that was split. It can be harmful if it causes the same fact to dominate multiple retrieval results (redundancy), or if it significantly increases the number of chunks (cost). Optimal overlap is usually 10–20% of chunk size.</p></div>
+    <div class="qa-block"><p class="q">Q4: When would you choose a semantic splitter over a recursive character splitter?</p><p class="a">A: When the document has clear topic shifts and you want chunks that represent coherent subtopics. Semantic splitting uses embedding similarity to detect breaks, producing thematically focused chunks. It’s useful for long, unstructured text like research papers or articles. It’s more expensive, so it’s not the default choice.</p></div>
+    <div class="qa-block"><p class="q">Q5: How would you handle a table that spans multiple chunks in a PDF document?</p><p class="a">A: First, try to extract the table as a separate entity (e.g., using a table parser) and convert it to a text representation (markdown, CSV) with the header prepended. If it must be split, ensure each chunk includes the table header by storing it in metadata or prepending it. Using overlap can also help preserve rows at boundaries.</p></div>
+    <hr class="divider">
+
+    <!-- 10. COMMON MISTAKES -->
+    <h2>10. Common Mistakes</h2>
+    <table>
+        <tr><th>❌ Wrong Practice</th><th>✅ Correct Approach</th></tr>
+        <tr><td>Using chunk_size=0 or no overlap.</td><td>Always set a positive overlap (10‑20%). Zero overlap risks splitting important context at every boundary.</td></tr>
+        <tr><td>Ignoring the chunk size limit of the embedding model (e.g., 8191 tokens for ada‑002).</td><td>Set chunk_size safely below the embedding model’s maximum input length; consider both chunk and expected query length.</td></tr>
+        <tr><td>Splitting purely by character count without respecting sentence boundaries.</td><td>Use recursive character splitter with a hierarchy of separators, or semantic splitting, to keep linguistic units intact.</td></tr>
+        <tr><td>Applying the same splitter to code, Markdown, and unstructured text without customization.</td><td>Use language‑aware or structure‑aware splitters for code (respecting functions) and Markdown (respecting headings).</td></tr>
+        <tr><td>Not filtering out very small chunks (e.g., a single punctuation mark).</td><td>Set a minimum chunk length (e.g., 10 tokens) to remove noise and improve retrieval quality.</td></tr>
+    </table>
+    <hr class="divider">
+
+    <!-- 11. EXAM CRAM FACTS -->
+    <h2>11. Exam Cram Facts (Day‑Before Revision)</h2>
+    <ol>
+        <li class="cram-bullet">Text splitters convert long documents into smaller, overlapping chunks for embedding and retrieval.</li>
+        <li class="cram-bullet">Key parameters: <code>chunk_size</code> (target length), <code>chunk_overlap</code> (10–20% of size), <code>length_function</code> (chars or tokens).</li>
+        <li class="cram-bullet">RecursiveCharacterTextSplitter: splits by paragraph, then sentence, then space, then character.</li>
+        <li class="cram-bullet">TokenTextSplitter uses a tokenizer (tiktoken) to measure length, aligning with LLM limits.</li>
+        <li class="cram-bullet">MarkdownHeaderTextSplitter preserves hierarchy and attaches header metadata to chunks.</li>
+        <li class="cram-bullet">Semantic splitter uses embeddings to detect topic shifts – coherent but computationally heavy.</li>
+        <li class="cram-bullet">Overlap prevents splitting of a single fact across chunk boundaries; typical overlap = 10‑20%.</li>
+        <li class="cram-bullet">Chunk size is a trade‑off: larger = more context, smaller = more precise retrieval.</li>
+        <li class="cram-bullet">Always filter out excessively small chunks; set a minimum size to reduce noise.</li>
+        <li class="cram-bullet">For production, use token‑based splitting to accurately respect the LLM’s context window.</li>
+    </ol>
+    <hr class="divider">
+
+    <!-- 12. ULTRA FAST REVISION -->
+    <h2>12. Ultra‑Fast Revision (60 Seconds)</h2>
+    <div class="ultra-box">
+        <h3>⚡ Text Splitters – 60‑Second Blitz</h3>
+        <div class="row"><strong>Purpose:</strong> Divide long docs into self‑contained chunks for embedding & retrieval.</div>
+        <div class="row"><strong>Core params:</strong> <code>chunk_size</code> (how big?), <code>chunk_overlap</code> (how much to repeat?), <code>separators</code> (where to split?).</div>
+        <div class="row"><strong>Types:</strong> RecursiveCharacter (default), Token‑based, Markdown/HTML, Code, Semantic.</div>
+        <div class="row"><strong>Overlap:</strong> 10‑20% – keeps facts from being cut in half.</div>
+        <div class="row"><strong>Size:</strong> ~512 tokens start; balance context vs. precision.</div>
+        <div class="row"><strong>Token vs Char:</strong> Token‑based respects LLM limits; char‑based is faster but less accurate.</div>
+        <div class="row"><strong>Pitfall:</strong> No overlap, splitting mid‑sentence, ignoring table structure.</div>
+        <div class="row"><strong>Pipeline:</strong> Load → Split (with overlap) → Filter small chunks → Embed → Index.</div>
+        <div class="row"><strong>Golden Rule:</strong> <strong>Split at semantic boundaries with enough overlap to keep meaning intact.</strong></div>
+    </div>
+    <hr class="divider">
+    <p style="text-align:center;font-size:8pt;margin-top:8px;font-weight:700;">— END OF TEXT SPLITTERS CHEAT SHEET —</p>
+</body>
+</html>
