@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Embeddings – High‑Density Cheat Sheet</title>
+    <style>
+        :root {
+            --bg: #ffffff;
+            --text: #000000;
+            --border: #000000;
+            --box-bg: #ffffff;
+            --rule: #000000;
+            --table-border: #000000;
+            --light-border: #cccccc;
+        }
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body {
+            background: var(--bg); color: var(--text);
+            font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+            font-size: 10pt; line-height: 1.45;
+            max-width: 210mm; margin: 0 auto;
+            padding: 8mm 10mm 12mm 10mm;
+            -webkit-print-color-adjust: exact; print-color-adjust: exact;
+        }
+        @media print {
+            body { padding:8mm 10mm 12mm 10mm; font-size:9pt; }
+            @page { size: A4; margin: 0; }
+            .page-break { page-break-before: always; }
+            .no-break { page-break-inside: avoid; }
+        }
+        @media screen and (max-width:600px) {
+            body { padding:4mm 5mm; font-size:8.5pt; }
+        }
+        h1 {
+            font-size: 22pt; font-weight:900; text-align:center; letter-spacing:1.5pt;
+            text-transform:uppercase; border:3px solid var(--border); padding:10px 16px;
+            margin-bottom:6px; line-height:1.2;
+        }
+        .subtitle { text-align:center; font-size:10pt; font-style:italic; margin-bottom:12px; border-bottom:2px solid var(--border); padding-bottom:6px; }
+        h2 { font-size:14pt; font-weight:900; text-transform:uppercase; border-bottom:2.5px solid var(--border); padding-bottom:3px; margin-top:18px; margin-bottom:8px; letter-spacing:0.8pt; }
+        h3 { font-size:11.5pt; font-weight:700; margin-top:12px; margin-bottom:6px; text-transform:uppercase; letter-spacing:0.4pt; border-left:4px solid var(--border); padding-left:8px; }
+        h4 { font-size:10pt; font-weight:700; margin-top:8px; margin-bottom:4px; }
+        p { margin-bottom:4px; }
+        ul { list-style-type:square; padding-left:18px; margin-bottom:6px; }
+        ul li { margin-bottom:2px; }
+        ul.compact li { margin-bottom:1px; line-height:1.3; }
+        .formula-box {
+            border:2px solid var(--border); padding:10px 14px; margin:10px auto;
+            text-align:center; font-size:13pt; font-weight:700;
+            font-family:"Courier New", Courier, monospace; letter-spacing:0.5pt;
+            background:#fafafa; max-width:95%; word-break:break-all;
+        }
+        .formula-box.small { font-size:10pt; padding:7px 10px; }
+        .var-meaning { font-size:9pt; margin-top:4px; text-align:left; font-family:"Helvetica Neue", Helvetica, Arial, sans-serif; font-weight:400; line-height:1.4; }
+        .interpretation { font-size:9pt; font-style:italic; margin-top:3px; text-align:left; font-weight:400; font-family:"Helvetica Neue", Helvetica, Arial, sans-serif; }
+        .interview-note { font-size:8.5pt; font-weight:700; margin-top:3px; text-align:left; font-family:"Helvetica Neue", Helvetica, Arial, sans-serif; text-transform:uppercase; letter-spacing:0.3pt; }
+        table { width:100%; border-collapse:collapse; margin:8px 0 10px 0; font-size:9pt; }
+        table th { background-color:#e8e8e8; border:1.5px solid var(--border); padding:6px 7px; text-align:left; font-weight:700; text-transform:uppercase; letter-spacing:0.3pt; font-size:8.5pt; }
+        table td { border:1px solid var(--light-border); padding:5px 7px; vertical-align:top; }
+        .compact-table td, .compact-table th { padding:3px 5px; font-size:8.5pt; }
+        .divider { border:none; border-top:2px solid var(--border); margin:14px 0; }
+        .divider-thin { border:none; border-top:1px solid var(--light-border); margin:8px 0; }
+        .two-col { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin:6px 0; }
+        @media screen and (max-width:600px) { .two-col { grid-template-columns:1fr; } }
+        .highlight-box { border:2px dashed var(--border); padding:8px 12px; margin:8px 0; background:#fdfdfd; }
+        .flow-arrow { text-align:center; font-weight:900; font-size:10pt; margin:2px 0; letter-spacing:1pt; }
+        .qa-block { margin:6px 0; padding-left:8px; border-left:3px solid var(--border); }
+        .qa-block .q { font-weight:700; font-size:10pt; }
+        .qa-block .a { font-size:9.5pt; margin-left:4px; }
+        .cram-bullet { font-size:9pt; margin-bottom:2px; line-height:1.35; }
+        .ultra-box { border:3px solid var(--border); padding:10px 14px; margin:12px 0; background:#fafafa; }
+        .ultra-box h3 { border-left:none; text-align:center; font-size:13pt; margin-top:0; padding-left:0; }
+        .ultra-box .row { display:flex; flex-wrap:wrap; gap:4px 12px; margin:3px 0; font-size:9.5pt; }
+        .ultra-box .row strong { min-width:130px; display:inline-block; font-size:9pt; text-transform:uppercase; letter-spacing:0.3pt; }
+    </style>
+</head>
+<body>
+
+    <h1>Embeddings</h1>
+    <p class="subtitle">Dense vector representations that capture semantic meaning – the mathematical bridge between text and machine learning models.</p>
+
+    <!-- 1. CORE IDEA -->
+    <h2>1. Core Idea</h2>
+    <ul>
+        <li><strong>What is an embedding?</strong> A dense, fixed‑length vector (e.g., 768‑dim) that represents a word, sentence, or document in a continuous vector space. It maps discrete symbols (tokens) to a continuous geometry where semantically similar items are close together.</li>
+        <li><strong>Why does it exist?</strong> Machine learning models require numerical input. Embeddings convert text into numbers while preserving semantic relationships – “king” and “queen” are closer than “king” and “table”. This enables similarity search, clustering, and serving as input to neural models.</li>
+        <li><strong>Key property:</strong> The distance (cosine, Euclidean) between two embedding vectors reflects their semantic similarity. Embeddings are learned from co‑occurrence statistics or language modeling tasks.</li>
+        <li><strong>In RAG:</strong> Embeddings transform user queries and document chunks into vectors, enabling efficient nearest‑neighbour retrieval in a vector database.</li>
+    </ul>
+    <hr class="divider">
+
+    <!-- 2. MENTAL MODEL -->
+    <h2>2. Mental Model</h2>
+    <div class="two-col">
+        <div>
+            <h4>🔹 The “Semantic Map”</h4>
+            <p>Imagine all words/sentences placed on a huge map. Words with similar meaning (cat, kitten) are clustered together; unrelated words (cat, car) are far apart. Embeddings are the GPS coordinates of meaning – the closer the coordinates, the more similar the content.</p>
+        </div>
+        <div>
+            <h4>🔹 The “Translation Layer”</h4>
+            <p>Computers don’t understand text. Embeddings act as a Rosetta Stone: they translate human language into a numeric form that algorithms can process, while keeping the “meaning” encoded in the spatial arrangement of numbers.</p>
+        </div>
+    </div>
+    <hr class="divider">
+
+    <!-- 3. KEY CONCEPTS -->
+    <h2>3. Key Concepts</h2>
+    <table>
+        <tr><th style="width:18%;">Concept</th><th style="width:35%;">Meaning</th><th style="width:22%;">Importance</th><th style="width:25%;">Interview Insight</th></tr>
+        <tr>
+            <td><strong>Similarity Metric</strong></td>
+            <td>Typically cosine similarity: sim(u,v) = (u·v) / (||u||·||v||). Measures the angle between vectors, invariant to magnitude.</td>
+            <td>Core retrieval operation; defines “closeness” in the embedding space.</td>
+            <td>“Why cosine and not Euclidean? Cosine ignores vector length, focusing on direction – better for text where longer documents aren’t necessarily more relevant.”</td>
+        </tr>
+        <tr>
+            <td><strong>Dimensionality</strong></td>
+            <td>The length of the embedding vector (e.g., 1536 for OpenAI Ada). Higher dimensions can encode more information but increase storage and computation.</td>
+            <td>Trade‑off: more dimensions → richer representation, but slower and costlier.</td>
+            <td>“A 300‑dim GloVe vector captures basic semantics; 1536‑dim Ada captures nuanced context. Choose based on task complexity.”</td>
+        </tr>
+        <tr>
+            <td><strong>Static vs. Contextual</strong></td>
+            <td>Static embeddings (Word2Vec, GloVe) give a fixed vector per word. Contextual embeddings (BERT, sentence‑transformers) produce different vectors depending on surrounding text.</td>
+            <td>Contextual embeddings handle polysemy (e.g., “bank” in “river bank” vs “money bank”) – essential for modern NLP.</td>
+            <td>“Static embeddings can’t distinguish ‘I deposited money in the bank’ from ‘I sat on the river bank’.”</td>
+        </tr>
+        <tr>
+            <td><strong>Embedding Model</strong></td>
+            <td>The neural network trained to map text → vector. Examples: Word2Vec (Mikolov), GloVe (Stanford), Sentence‑BERT, OpenAI text‑embedding‑ada‑002, Cohere Embed.</td>
+            <td>The quality of embeddings directly determines retrieval accuracy and downstream task performance.</td>
+            <td>“Sentence‑BERT is the go‑to for semantic search; it fine‑tunes BERT with a siamese/triplet objective to produce meaningful sentence embeddings.”</td>
+        </tr>
+    </table>
+    <hr class="divider">
+
+    <!-- 4. FORMULA SHEET -->
+    <h2>4. Formula Sheet</h2>
+
+    <h3>4.1 Cosine Similarity</h3>
+    <div class="formula-box small">
+        cosine(u, v) = (u · v) / (||u|| · ||v||) = Σ u<sub>i</sub> v<sub>i</sub> / ( √Σ u<sub>i</sub><sup>2</sup> · √Σ v<sub>i</sub><sup>2</sup> )
+    </div>
+    <p class="var-meaning">Range: [‑1, 1]. 1 = perfectly aligned, 0 = orthogonal (no relation), –1 = opposite direction. In practice, embeddings are usually in the positive orthant, so similarity ∈ [0,1].</p>
+
+    <h3>4.2 Word2Vec (Skip‑gram) Objective</h3>
+    <div class="formula-box small">
+        maximize Σ<sub>t</sub> Σ<sub>‑c ≤ j ≤ c, j≠0</sub> log P( w<sub>t+j</sub> | w<sub>t</sub> )<br>
+        where P( w<sub>O</sub> | w<sub>I</sub> ) = exp( v'<sub>wO</sub><sup>T</sup> · v<sub>wI</sub> ) / Σ<sub>w</sub> exp( v'<sub>w</sub><sup>T</sup> · v<sub>wI</sub> )
+    </div>
+    <p class="var-meaning">Predicts surrounding context words given a center word. The weight vectors <strong>v<sub>wI</sub></strong> (input) or <strong>v'<sub>wO</sub></strong> (output) become the word embeddings.</p>
+
+    <h3>4.3 Sentence‑BERT (Siamese Training)</h3>
+    <div class="formula-box small">
+        Loss = MSE( cosine(u, v), gold_similarity ) &nbsp; (regression)<br>
+        or CrossEntropy over softmax of cosine similarities (classification with multiple sentences).
+    </div>
+    <p class="var-meaning">Fine‑tunes a transformer encoder (e.g., BERT) so that similar sentence pairs have high cosine similarity, and dissimilar pairs low similarity.</p>
+    <hr class="divider">
+
+    <!-- 5. TYPES OF EMBEDDINGS – OVERVIEW -->
+    <h2>5. Types of Embeddings</h2>
+    <table>
+        <tr><th>Type</th><th>Granularity</th><th>Examples</th><th>Pros</th><th>Cons</th></tr>
+        <tr><td><strong>Word Embeddings</strong></td><td>Individual words</td><td>Word2Vec, GloVe, FastText</td><td>Fast, small; good for simple tasks</td><td>No context (polysemy); ignores word order; hard to get sentence meaning</td></tr>
+        <tr><td><strong>Sentence / Text Embeddings</strong></td><td>Phrases, sentences, paragraphs</td><td>Sentence‑BERT, Universal Sentence Encoder, InferSent</td><td>Captures full phrase meaning; directly usable for search and clustering</td><td>Larger models; inference cost higher</td></tr>
+        <tr><td><strong>Contextual Token Embeddings</strong></td><td>Per token, context‑dependent</td><td>BERT, GPT, LLaMA hidden states</td><td>Handles polysemy; state‑of‑the‑art for downstream tasks</td><td>Not directly a single fixed vector for a word; pooling needed for sentence tasks</td></tr>
+        <tr><td><strong>Multi‑modal Embeddings</strong></td><td>Cross‑modal (text, image, audio)</td><td>CLIP, ImageBind</td><td>Align different modalities in one space; text‑to‑image search</td><td>Training complex; requires paired data</td></tr>
+    </table>
+    <hr class="divider">
+
+    <!-- 6. POPULAR EMBEDDING MODELS -->
+    <h2>6. Popular Embedding Models (Text)</h2>
+    <table>
+        <tr><th>Model</th><th>Dimensionality</th><th>Max Input Tokens</th><th>Contextual?</th><th>Notes</th></tr>
+        <tr><td><strong>OpenAI text‑embedding‑ada‑002</strong></td><td>1536</td><td>8191</td><td>Yes (transformer‑based)</td><td>Closed‑source, via API; dominant in RAG; unified embeddings (no separate query/doc model)</td></tr>
+        <tr><td><strong>Cohere Embed (v3)</strong></td><td>1024</td><td>512</td><td>Yes</td><td>Supports input_type (search_document, search_query); very strong for retrieval</td></tr>
+        <tr><td><strong>Sentence‑BERT (all‑MiniLM‑L6‑v2)</strong></td><td>384</td><td>256</td><td>Yes</td><td>Open‑source, fast, excellent for semantic search; many variants</td></tr>
+        <tr><td><strong>BGE (BAAI)</strong></td><td>768 / 1024</td><td>512</td><td>Yes</td><td>Top‑tier open‑source retrieval embeddings; can be fine‑tuned</td></tr>
+        <tr><td><strong>E5 (intfloat)</strong></td><td>768 / 1024</td><td>512</td><td>Yes</td><td>Strong on MTEB benchmark; prefix "query:" / "passage:" required</td></tr>
+        <tr><td><strong>GloVe</strong></td><td>50‑300</td><td>—</td><td>No (static)</td><td>Classic; pre‑trained word vectors; fast but context‑insensitive</td></tr>
+        <tr><td><strong>FastText</strong></td><td>100‑300</td><td>—</td><td>No (static)</td><td>Handles out‑of‑vocabulary words via subword n‑grams</td></tr>
+    </table>
+    <hr class="divider">
+
+    <!-- 7. EMBEDDINGS IN RAG PIPELINE -->
+    <h2>7. Role in RAG (Retrieval‑Augmented Generation)</h2>
+    <div class="no-break">
+        <div class="flow-arrow"><strong>Ingestion:</strong> Documents → chunked → each chunk passed through embedding model → vector stored in vector DB.</div>
+        <div class="flow-arrow"><strong>Querying:</strong> User query → embedding model → query vector → nearest‑neighbour search (cosine) in vector DB → retrieve top‑k chunks.</div>
+        <div class="flow-arrow">The retrieved chunks are then injected into the LLM prompt as context.</div>
+    </div>
+    <p class="var-meaning">Embedding model choice is critical: ideally, the same model should embed both queries and documents (symmetric) or use a model that distinguishes query vs. document (asymmetric, like Cohere’s input_type).</p>
+    <hr class="divider">
+
+    <!-- 8. ADVANTAGES & LIMITATIONS -->
+    <h2>8. Advantages & Limitations</h2>
+    <div class="two-col">
+        <div>
+            <h4>✅ Advantages</h4>
+            <ul>
+                <li>Dense, compact representation – efficient storage and computation.</li>
+                <li>Captures semantic meaning; can measure similarity without keyword overlap.</li>
+                <li>Pre‑trained models provide strong generic representations out‑of‑the‑box.</li>
+                <li>Contextual embeddings resolve polysemy.</li>
+                <li>Enables powerful retrieval systems (semantic search, RAG) and clustering.</li>
+                <li>Transferable across tasks – e.g., embeddings pre‑trained on a large corpus can be fine‑tuned for specific domains.</li>
+            </ul>
+        </div>
+        <div>
+            <h4>❌ Limitations</h4>
+            <ul>
+                <li>Static models cannot handle word meaning changes over time or domain‑specific jargon.</li>
+                <li>Training large embedding models is resource‑intensive.</li>
+                <li>Embedding quality depends heavily on training data – biases are inherited.</li>
+                <li>Not interpretable: individual dimensions usually have no clear meaning.</li>
+                <li>Mixing different embedding models (e.g., query and document from different models) can break similarity assumptions.</li>
+                <li>Cosine similarity can be fooled by high‑dimensional noise; calibration needed.</li>
+            </ul>
+        </div>
+    </div>
+    <hr class="divider">
+
+    <!-- 9. INTERVIEW QUESTIONS -->
+    <h2>9. Interview Questions</h2>
+    <div class="qa-block"><p class="q">Q1: What is an embedding and why is it essential for NLP?</p><p class="a">A: An embedding is a dense vector representing text in a continuous space where semantically similar items are close. It’s essential because ML models require numerical input; embeddings convert text while preserving meaning, enabling similarity comparison, classification, and retrieval.</p></div>
+    <div class="qa-block"><p class="q">Q2: Explain the difference between static and contextual embeddings with an example.</p><p class="a">A: Static embeddings (Word2Vec) give a single vector per word – “bank” has the same embedding regardless of context. Contextual embeddings (BERT) generate different vectors for “bank” in “river bank” vs “money bank”, capturing polysemy.</p></div>
+    <div class="qa-block"><p class="q">Q3: Why is cosine similarity preferred over Euclidean distance for comparing embeddings?</p><p class="a">A: Cosine similarity measures the angle between vectors, focusing on direction rather than magnitude. In text, document length shouldn’t affect relevance – a longer document about a topic isn’t inherently more similar. Cosine is invariant to vector length.</p></div>
+    <div class="qa-block"><p class="q">Q4: How do Sentence‑BERT models produce sentence embeddings, and why are they better than averaging BERT token embeddings?</p><p class="a">A: Sentence‑BERT fine‑tunes BERT with a siamese/triplet structure and a pooling layer (mean of token embeddings) to produce a fixed‑size sentence vector. Averaging BERT token embeddings without fine‑tuning yields poor sentence representations because BERT was not trained for sentence‑level similarity. Sentence‑BERT explicitly trains for that.</p></div>
+    <div class="qa-block"><p class="q">Q5: In a RAG system, why might you choose different embedding models for the query and the document?</p><p class="a">A: Some models (like Cohere) support asymmetric embeddings – a separate model for queries (shorter, question‑like) and documents (longer, informative). This can improve retrieval because queries and documents have different statistical properties. However, many models (Ada) use symmetric embeddings where the same model handles both.</p></div>
+    <hr class="divider">
+
+    <!-- 10. COMMON MISTAKES -->
+    <h2>10. Common Mistakes</h2>
+    <table>
+        <tr><th>❌ Wrong Belief</th><th>✅ Correct Understanding</th></tr>
+        <tr><td>“Averaging Word2Vec vectors gives a good sentence embedding.”</td><td>It ignores word order and context; Sentence‑BERT or dedicated sentence models are far superior.</td></tr>
+        <tr><td>“Higher cosine similarity always means better match.”</td><td>Cosine similarity can be high for unrelated but frequently co‑occurring concepts. It should be calibrated with human judgment and combined with other signals (BM25).</td></tr>
+        <tr><td>“Any embedding model works for any task.”</td><td>Choose a model trained for the specific task: retrieval models (BGE, E5) outperform general‑purpose models for search. Check MTEB leaderboard.</td></tr>
+        <tr><td>“Embeddings are just PCA of Bag‑of‑Words.”</td><td>Modern embeddings are learned via deep neural networks and capture non‑linear semantic relationships far beyond linear methods.</td></tr>
+        <tr><td>“If the embedding dimension is higher, it’s always better.”</td><td>Beyond a point, higher dimensions increase compute and storage without significant gain; there is a trade‑off. 768 or 1024 is often sufficient.</td></tr>
+    </table>
+    <hr class="divider">
+
+    <!-- 11. EXAM CRAM FACTS -->
+    <h2>11. Exam Cram Facts (Day‑Before Revision)</h2>
+    <ol>
+        <li class="cram-bullet">Embeddings are dense, fixed‑length vectors representing text; similar texts have similar vectors (high cosine similarity).</li>
+        <li class="cram-bullet">Cosine similarity formula: cos(u,v) = (u·v) / (||u||·||v||). Range [‑1,1]; typically positive for real embeddings.</li>
+        <li class="cram-bullet">Static embeddings (Word2Vec, GloVe) give one vector per word, ignoring context.</li>
+        <li class="cram-bullet">Contextual embeddings (BERT, Sentence‑BERT) change with surrounding words – solves polysemy.</li>
+        <li class="cram-bullet">Sentence‑BERT fine‑tunes BERT with siamese/triplet training + pooling for sentence‑level embeddings.</li>
+        <li class="cram-bullet">Key models for RAG: OpenAI Ada (1536d), Cohere Embed (1024d), BGE, E5, Sentence‑BERT (384d).</li>
+        <li class="cram-bullet">In RAG: document chunks → embed → vector DB; query → embed → nearest‑neighbour search → retrieve top‑k.</li>
+        <li class="cram-bullet">Asymmetric embeddings: separate models for query and document (Cohere); symmetric: same model (Ada).</li>
+        <li class="cram-bullet">Embedding dimension is a trade‑off between richness and efficiency; 384‑1024 common.</li>
+        <li class="cram-bullet">MTEB benchmark is the standard for comparing text embedding models.</li>
+    </ol>
+    <hr class="divider">
+
+    <!-- 12. ULTRA FAST REVISION -->
+    <h2>12. Ultra‑Fast Revision (60 Seconds)</h2>
+    <div class="ultra-box">
+        <h3>⚡ Embeddings – 60‑Second Blitz</h3>
+        <div class="row"><strong>Definition:</strong> Dense vectors encoding semantic meaning; similar items = nearby vectors.</div>
+        <div class="row"><strong>Why:</strong> Convert text → numbers for ML; preserve similarity via cosine.</div>
+        <div class="row"><strong>Cosine:</strong> (u·v)/(||u||·||v||). 1 = identical, 0 = unrelated.</div>
+        <div class="row"><strong>Static vs. Contextual:</strong> Word2Vec/GloVe fixed per word; BERT/SBERT context‑dependent.</div>
+        <div class="row"><strong>Key models:</strong> OpenAI Ada (1536d), Cohere Embed (1024d), BGE, E5, SBERT.</div>
+        <div class="row"><strong>RAG flow:</strong> Chunk → embed → index. Query → embed → search → top‑k → prompt.</div>
+        <div class="row"><strong>Common pitfalls:</strong> Using static for sentences, ignoring embedding model choice, assuming higher dim = better.</div>
+        <div class="row"><strong>Golden rule:</strong> <strong>Embeddings turn meaning into geometry – pick the right model for your task and measure with cosine.</strong></div>
+    </div>
+    <hr class="divider">
+    <p style="text-align:center;font-size:8pt;margin-top:8px;font-weight:700;">— END OF EMBEDDINGS CHEAT SHEET —</p>
+</body>
+</html>

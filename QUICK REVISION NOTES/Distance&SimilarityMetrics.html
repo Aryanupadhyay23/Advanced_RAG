@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Distance & Similarity Metrics – High‑Density Cheat Sheet</title>
+    <!-- MathJax for LaTeX rendering -->
+    <script>
+        MathJax = {
+            tex: { inlineMath: [['$', '$'], ['\\(', '\\)']] },
+            svg: { fontCache: 'global' }
+        };
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js" async></script>
+    <style>
+        :root {
+            --bg: #ffffff;
+            --text: #000000;
+            --border: #000000;
+            --box-bg: #ffffff;
+            --rule: #000000;
+            --table-border: #000000;
+            --light-border: #cccccc;
+        }
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body {
+            background: var(--bg); color: var(--text);
+            font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+            font-size: 10pt; line-height: 1.45;
+            max-width: 210mm; margin: 0 auto;
+            padding: 8mm 10mm 12mm 10mm;
+            -webkit-print-color-adjust: exact; print-color-adjust: exact;
+        }
+        @media print {
+            body { padding:8mm 10mm 12mm 10mm; font-size:9pt; }
+            @page { size: A4; margin: 0; }
+            .page-break { page-break-before: always; }
+            .no-break { page-break-inside: avoid; }
+        }
+        @media screen and (max-width:600px) {
+            body { padding:4mm 5mm; font-size:8.5pt; }
+        }
+        h1 {
+            font-size: 22pt; font-weight:900; text-align:center; letter-spacing:1.5pt;
+            text-transform:uppercase; border:3px solid var(--border); padding:10px 16px;
+            margin-bottom:6px; line-height:1.2;
+        }
+        .subtitle { text-align:center; font-size:10pt; font-style:italic; margin-bottom:12px; border-bottom:2px solid var(--border); padding-bottom:6px; }
+        h2 { font-size:14pt; font-weight:900; text-transform:uppercase; border-bottom:2.5px solid var(--border); padding-bottom:3px; margin-top:18px; margin-bottom:8px; letter-spacing:0.8pt; }
+        h3 { font-size:11.5pt; font-weight:700; margin-top:12px; margin-bottom:6px; text-transform:uppercase; letter-spacing:0.4pt; border-left:4px solid var(--border); padding-left:8px; }
+        h4 { font-size:10pt; font-weight:700; margin-top:8px; margin-bottom:4px; }
+        p { margin-bottom:4px; }
+        ul { list-style-type:square; padding-left:18px; margin-bottom:6px; }
+        ul li { margin-bottom:2px; }
+        ul.compact li { margin-bottom:1px; line-height:1.3; }
+        .formula-box {
+            border:2px solid var(--border); padding:10px 14px; margin:10px auto;
+            text-align:center; font-size:13pt; font-weight:700;
+            font-family:"Courier New", Courier, monospace; letter-spacing:0.5pt;
+            background:#fafafa; max-width:95%; word-break:break-all;
+        }
+        .formula-box.small { font-size:10pt; padding:7px 10px; }
+        .var-meaning { font-size:9pt; margin-top:4px; text-align:left; font-family:"Helvetica Neue", Helvetica, Arial, sans-serif; font-weight:400; line-height:1.4; }
+        .interpretation { font-size:9pt; font-style:italic; margin-top:3px; text-align:left; font-weight:400; font-family:"Helvetica Neue", Helvetica, Arial, sans-serif; }
+        .interview-note { font-size:8.5pt; font-weight:700; margin-top:3px; text-align:left; font-family:"Helvetica Neue", Helvetica, Arial, sans-serif; text-transform:uppercase; letter-spacing:0.3pt; }
+        table { width:100%; border-collapse:collapse; margin:8px 0 10px 0; font-size:9pt; }
+        table th { background-color:#e8e8e8; border:1.5px solid var(--border); padding:6px 7px; text-align:left; font-weight:700; text-transform:uppercase; letter-spacing:0.3pt; font-size:8.5pt; }
+        table td { border:1px solid var(--light-border); padding:5px 7px; vertical-align:top; }
+        .compact-table td, .compact-table th { padding:3px 5px; font-size:8.5pt; }
+        .divider { border:none; border-top:2px solid var(--border); margin:14px 0; }
+        .divider-thin { border:none; border-top:1px solid var(--light-border); margin:8px 0; }
+        .two-col { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin:6px 0; }
+        @media screen and (max-width:600px) { .two-col { grid-template-columns:1fr; } }
+        .highlight-box { border:2px dashed var(--border); padding:8px 12px; margin:8px 0; background:#fdfdfd; }
+        .flow-arrow { text-align:center; font-weight:900; font-size:10pt; margin:2px 0; letter-spacing:1pt; }
+        .qa-block { margin:6px 0; padding-left:8px; border-left:3px solid var(--border); }
+        .qa-block .q { font-weight:700; font-size:10pt; }
+        .qa-block .a { font-size:9.5pt; margin-left:4px; }
+        .cram-bullet { font-size:9pt; margin-bottom:2px; line-height:1.35; }
+        .ultra-box { border:3px solid var(--border); padding:10px 14px; margin:12px 0; background:#fafafa; }
+        .ultra-box h3 { border-left:none; text-align:center; font-size:13pt; margin-top:0; padding-left:0; }
+        .ultra-box .row { display:flex; flex-wrap:wrap; gap:4px 12px; margin:3px 0; font-size:9.5pt; }
+        .ultra-box .row strong { min-width:130px; display:inline-block; font-size:9pt; text-transform:uppercase; letter-spacing:0.3pt; }
+    </style>
+</head>
+<body>
+
+    <h1>Distance & Similarity</h1>
+    <p class="subtitle">Core mathematical tools for comparing vectors – Euclidean distance, Manhattan distance, cosine similarity, and dot product.</p>
+
+    <!-- 1. CORE IDEA -->
+    <h2>1. Core Idea</h2>
+    <ul>
+        <li><strong>What are they?</strong> Functions that quantify how close (or similar) two vectors are in a vector space. They are the mathematical foundation of nearest‑neighbour search, clustering, and information retrieval.</li>
+        <li><strong>Why do they matter?</strong> In ML and NLP, everything is a vector (embeddings, features). Comparing these vectors reliably determines retrieval quality, classification, and clustering performance.</li>
+        <li><strong>Distance metrics</strong> (Euclidean, Manhattan) produce larger values for less similar vectors. <strong>Similarity metrics</strong> (cosine, dot product) produce larger values for more similar vectors.</li>
+        <li><strong>Choice depends on:</strong> vector normalization, sparsity, sensitivity to magnitude, and the geometry of the embedding space.</li>
+    </ul>
+    <hr class="divider">
+
+    <!-- 2. FORMULAS & INTERPRETATION -->
+    <h2>2. Formulas & Intuition</h2>
+    <p>Let two vectors be $\mathbf{u} = (u_1, u_2, \dots, u_n)$ and $\mathbf{v} = (v_1, v_2, \dots, v_n)$.</p>
+
+    <h3>2.1 Euclidean Distance ($L^2$ norm)</h3>
+    <div class="formula-box">
+        $ d_{\text{Euclidean}}(\mathbf{u}, \mathbf{v}) = \sqrt{ \sum_{i=1}^{n} (u_i - v_i)^2 } $
+    </div>
+    <p class="var-meaning">The straight‑line distance in multi‑dimensional space. Generalization of the Pythagorean theorem.</p>
+    <p class="interpretation">Emphasises large differences (squared). Sensitive to both direction and magnitude. If vectors are unit‑normalized, Euclidean distance relates to cosine similarity: $ \|\mathbf{u} - \mathbf{v}\|^2 = 2(1 - \cos(\mathbf{u}, \mathbf{v})) $.</p>
+
+    <h3>2.2 Manhattan Distance ($L^1$ norm)</h3>
+    <div class="formula-box">
+        $ d_{\text{Manhattan}}(\mathbf{u}, \mathbf{v}) = \sum_{i=1}^{n} |u_i - v_i| $
+    </div>
+    <p class="var-meaning">Also called city‑block distance. Sum of absolute differences along each coordinate.</p>
+    <p class="interpretation">Less sensitive to outliers than Euclidean (no squaring). Preferable in high‑dimensional spaces where Euclidean distance can become uninformative (curse of dimensionality). Often used with sparse vectors.</p>
+
+    <h3>2.3 Cosine Similarity</h3>
+    <div class="formula-box">
+        $ \text{cosine}(\mathbf{u}, \mathbf{v}) = \frac{ \mathbf{u} \cdot \mathbf{v} }{ \|\mathbf{u}\| \|\mathbf{v}\| } = \frac{ \sum_{i=1}^{n} u_i v_i }{ \sqrt{\sum_{i=1}^{n} u_i^2} \sqrt{\sum_{i=1}^{n} v_i^2} } $
+    </div>
+    <p class="var-meaning">Measures the cosine of the angle between two vectors. Range: $[-1, 1]$. Vectors pointing in the same direction have similarity $1$; orthogonal vectors $0$; opposite directions $-1$. In NLP, embeddings are often in the positive orthant, so range typically $[0,1]$.</p>
+    <p class="interpretation">Magnitude‑invariant: captures similarity of <em>direction</em>, not length. Dominant metric for comparing text embeddings (Word2Vec, BERT, etc.).</p>
+
+    <h3>2.4 Dot Product (Inner Product)</h3>
+    <div class="formula-box">
+        $ \mathbf{u} \cdot \mathbf{v} = \sum_{i=1}^{n} u_i v_i $
+    </div>
+    <p class="var-meaning">The simplest similarity measure. No normalization; sensitive to both direction and magnitude. Equivalent to cosine similarity if vectors are unit‑normalized: $\mathbf{u} \cdot \mathbf{v} = \cos(\mathbf{u}, \mathbf{v})$ when $\|\mathbf{u}\| = \|\mathbf{v}\| = 1$.</p>
+    <p class="interpretation">Used in neural networks (logits, attention scores) and often in maximum inner product search (MIPS) for recommendation systems. Large dot product indicates both alignment and large magnitudes.</p>
+    <hr class="divider">
+
+    <!-- 3. COMPARISON TABLE -->
+    <h2>3. Comparison at a Glance</h2>
+    <table>
+        <tr><th>Metric</th><th>Type</th><th>Range</th><th>Sensitive to Magnitude?</th><th>Typical Use</th><th>Curse of Dimensionality</th></tr>
+        <tr>
+            <td><strong>Euclidean ($L^2$)</strong></td>
+            <td>Distance</td>
+            <td>$[0, \infty)$</td>
+            <td>Yes</td>
+            <td>Clustering (k‑means), low‑dim spaces, image pixels</td>
+            <td>High: distances become similar</td>
+        </tr>
+        <tr>
+            <td><strong>Manhattan ($L^1$)</strong></td>
+            <td>Distance</td>
+            <td>$[0, \infty)$</td>
+            <td>Yes (less than $L^2$)</td>
+            <td>Sparse vectors, robust similarity, high‑dim feature spaces</td>
+            <td>Less affected than Euclidean</td>
+        </tr>
+        <tr>
+            <td><strong>Cosine Similarity</strong></td>
+            <td>Similarity</td>
+            <td>$[-1, 1]$</td>
+            <td>No (direction only)</td>
+            <td>Text/document embeddings, information retrieval</td>
+            <td>Robust; recommended for high‑dim</td>
+        </tr>
+        <tr>
+            <td><strong>Dot Product</strong></td>
+            <td>Similarity</td>
+            <td>$(-\infty, \infty)$</td>
+            <td>Yes</td>
+            <td>Neural network logits, attention, MIPS (when magnitude matters)</td>
+            <td>Similar to Euclidean, but can be biased by magnitude</td>
+        </tr>
+    </table>
+    <hr class="divider">
+
+    <!-- 4. GEOMETRIC INTUITION -->
+    <h2>4. Geometric Intuition</h2>
+    <div class="two-col">
+        <div>
+            <h4>🔹 Euclidean vs Manhattan</h4>
+            <p>Euclidean is the direct “as the crow flies” distance. Manhattan is the path along grid lines – like walking through city blocks. Manhattan accumulates more distance for diagonal movement.</p>
+            <p>In a 2D plane with points (0,0) and (3,4): Euclidean = 5, Manhattan = 7. The difference grows with dimension and off‑axis displacement.</p>
+        </div>
+        <div>
+            <h4>🔹 Cosine vs Dot Product</h4>
+            <p>Cosine ignores vector length – it measures whether two documents talk about the same topic, even if one is a long essay and the other a tweet. Dot product rewards both topical similarity <em>and</em> verbosity. So a long document about cats might have a larger dot product with a short query than a short document about cats – which may be undesirable.</p>
+        </div>
+    </div>
+    <hr class="divider">
+
+    <!-- 5. INTERVIEW QUESTIONS -->
+    <h2>5. Interview Questions</h2>
+    <div class="qa-block"><p class="q">Q1: When would you use cosine similarity over Euclidean distance?</p><p class="a">A: When you care about the orientation of vectors, not their magnitude. Typical in NLP with embeddings, because document length shouldn’t dominate similarity. Cosine is also preferred in high‑dimensional spaces where Euclidean distances become unreliable.</p></div>
+    <div class="qa-block"><p class="q">Q2: Prove that for unit vectors, Euclidean distance and cosine similarity are directly related.</p><p class="a">A: For unit vectors $\|\mathbf{u}\|=\|\mathbf{v}\|=1$, we have $\|\mathbf{u} - \mathbf{v}\|^2 = \|\mathbf{u}\|^2 + \|\mathbf{v}\|^2 - 2 \mathbf{u}\cdot\mathbf{v} = 2 - 2\cos(\mathbf{u},\mathbf{v})$. Thus $\cos(\mathbf{u},\mathbf{v}) = 1 - \frac{1}{2}\|\mathbf{u} - \mathbf{v}\|^2$. Minimising Euclidean distance is equivalent to maximising cosine similarity.</p></div>
+    <div class="qa-block"><p class="q">Q3: Why might Manhattan distance perform better than Euclidean in high dimensions?</p><p class="a">A: In high dimensions, the volume of space expands such that Euclidean distances between random points tend to become very similar (concentration). Manhattan distance, not squaring differences, is less sensitive to this effect and can retain more contrast. It’s also more robust to outliers.</p></div>
+    <div class="qa-block"><p class="q">Q4: If you have normalized embeddings (all vectors on the unit sphere), does the choice between cosine and dot product matter?</p><p class="a">A: No. For unit‑norm vectors, dot product and cosine similarity are identical (since $\|\mathbf{u}\|=\|\mathbf{v}\|=1$). In practice, many embedding models (e.g., text‑embedding‑ada‑002) produce normalized vectors, so dot product suffices.</p></div>
+    <div class="qa-block"><p class="q">Q5: In a vector database using cosine similarity, how is the search typically implemented efficiently?</p><p class="a">A: Cosine similarity is equivalent to inner product after $L^2$ normalization. Vector databases pre‑normalize all vectors and then use maximum inner product search (MIPS) or approximate nearest neighbour (ANN) algorithms like HNSW, IVF, or Faiss with inner‑product metric. This is fast and well‑optimized.</p></div>
+    <hr class="divider">
+
+    <!-- 6. COMMON MISTAKES -->
+    <h2>6. Common Mistakes</h2>
+    <table>
+        <tr><th>❌ Wrong Belief</th><th>✅ Correct Understanding</th></tr>
+        <tr><td>“Cosine similarity measures distance.”</td><td>It measures similarity; higher is more similar. To get a distance, use $1 - \text{cosine}$ or $\arccos(\text{cosine})$.</td></tr>
+        <tr><td>“Dot product and cosine similarity are the same.”</td><td>Only equal when vectors are unit‑normalized. Otherwise, magnitude heavily influences the dot product.</td></tr>
+        <tr><td>“Euclidean distance is always better because it’s the ‘true’ distance.”</td><td>It’s only one metric; many applications benefit from magnitude‑invariant metrics. The “best” metric depends on the data and task.</td></tr>
+        <tr><td>“Cosine similarity can handle vectors of any dimension without issue.”</td><td>While cosine is robust, very high dimensions still suffer from the “hubness” problem where some points become universal nearest neighbours. Dimensionality reduction or careful model choice may still be needed.</td></tr>
+        <tr><td>“Manhattan distance is always slower than Euclidean.”</td><td>Both are $O(n)$ for dimension $n$; Manhattan avoids a square root, making it slightly faster per comparison.</td></tr>
+    </table>
+    <hr class="divider">
+
+    <!-- 7. EXAM CRAM FACTS -->
+    <h2>7. Exam Cram Facts (Day‑Before Revision)</h2>
+    <ol>
+        <li class="cram-bullet">Euclidean: $d = \sqrt{\sum (u_i - v_i)^2}$ – straight‑line distance, sensitive to outliers.</li>
+        <li class="cram-bullet">Manhattan: $d = \sum |u_i - v_i|$ – grid‑walk distance, robust to outliers.</li>
+        <li class="cram-bullet">Cosine: $\frac{u \cdot v}{\|u\|\|v\|}$ – direction‑only, range $[-1,1]$, standard for text embeddings.</li>
+        <li class="cram-bullet">Dot product: $u \cdot v = \sum u_i v_i$ – includes magnitude; equals cosine if vectors are unit‑norm.</li>
+        <li class="cram-bullet">For unit vectors: $\text{cosine} = \text{dot}$, and $\|u-v\|^2 = 2(1-\text{cosine})$.</li>
+        <li class="cram-bullet">In high dimensions, Euclidean suffers from distance concentration; cosine is more reliable.</li>
+        <li class="cram-bullet">Vector DBs use cosine by normalizing and then doing MIPS (inner product).</li>
+        <li class="cram-bullet">Distance metrics convert to similarity via negation or $1 - \text{similarity}$.</li>
+    </ol>
+    <hr class="divider">
+
+    <!-- 8. ULTRA FAST REVISION -->
+    <h2>8. Ultra‑Fast Revision (60 Seconds)</h2>
+    <div class="ultra-box">
+        <h3>⚡ Distance & Similarity – 60‑Second Blitz</h3>
+        <div class="row"><strong>Euclidean:</strong> $ \sqrt{\sum (u_i - v_i)^2}$ – straight line, magnitude matters.</div>
+        <div class="row"><strong>Manhattan:</strong> $\sum |u_i - v_i|$ – grid path, sparse/robust.</div>
+        <div class="row"><strong>Cosine:</strong> $\frac{u \cdot v}{\|u\|\|v\|}$ – angle, $[-1,1]$, ignores magnitude, NLP standard.</div>
+        <div class="row"><strong>Dot Product:</strong> $\sum u_i v_i$ – sensitive to magnitude; used in attention, logits.</div>
+        <div class="row"><strong>Normalized vectors:</strong> dot = cosine, Euclidean$^2$ = $2(1 - \text{cosine})$.</div>
+        <div class="row"><strong>High‑D: Use Cosine</strong> – Euclidean loses contrast.</div>
+        <div class="row"><strong>Vector DB:</strong> Normalize → inner product search = cosine.</div>
+        <div class="row"><strong>Key takeaway:</strong> <strong>Pick metric based on whether magnitude matters and the data distribution.</strong></div>
+    </div>
+    <hr class="divider">
+    <p style="text-align:center;font-size:8pt;margin-top:8px;font-weight:700;">— END OF DISTANCE & SIMILARITY CHEAT SHEET —</p>
+</body>
+</html>

@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vector Stores & Approximate Search – High‑Density Cheat Sheet</title>
+    <script>
+        MathJax = { tex: { inlineMath: [['$', '$'], ['\\(', '\\)']] }, svg: { fontCache: 'global' } };
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js" async></script>
+    <style>
+        :root {
+            --bg: #ffffff;
+            --text: #000000;
+            --border: #000000;
+            --box-bg: #ffffff;
+            --rule: #000000;
+            --table-border: #000000;
+            --light-border: #cccccc;
+        }
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body {
+            background: var(--bg); color: var(--text);
+            font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+            font-size: 10pt; line-height: 1.45;
+            max-width: 210mm; margin: 0 auto;
+            padding: 8mm 10mm 12mm 10mm;
+            -webkit-print-color-adjust: exact; print-color-adjust: exact;
+        }
+        @media print {
+            body { padding:8mm 10mm 12mm 10mm; font-size:9pt; }
+            @page { size: A4; margin: 0; }
+            .page-break { page-break-before: always; }
+            .no-break { page-break-inside: avoid; }
+        }
+        @media screen and (max-width:600px) {
+            body { padding:4mm 5mm; font-size:8.5pt; }
+        }
+        h1 {
+            font-size: 20pt; font-weight:900; text-align:center; letter-spacing:1.2pt;
+            text-transform:uppercase; border:3px solid var(--border); padding:10px 16px;
+            margin-bottom:6px; line-height:1.2;
+        }
+        .subtitle { text-align:center; font-size:10pt; font-style:italic; margin-bottom:12px; border-bottom:2px solid var(--border); padding-bottom:6px; }
+        h2 { font-size:14pt; font-weight:900; text-transform:uppercase; border-bottom:2.5px solid var(--border); padding-bottom:3px; margin-top:18px; margin-bottom:8px; letter-spacing:0.8pt; }
+        h3 { font-size:11.5pt; font-weight:700; margin-top:12px; margin-bottom:6px; text-transform:uppercase; letter-spacing:0.4pt; border-left:4px solid var(--border); padding-left:8px; }
+        h4 { font-size:10pt; font-weight:700; margin-top:8px; margin-bottom:4px; }
+        p { margin-bottom:4px; }
+        ul { list-style-type:square; padding-left:18px; margin-bottom:6px; }
+        ul li { margin-bottom:2px; }
+        ul.compact li { margin-bottom:1px; line-height:1.3; }
+        .formula-box {
+            border:2px solid var(--border); padding:10px 14px; margin:10px auto;
+            text-align:center; font-size:12pt; font-weight:700;
+            font-family:"Courier New", Courier, monospace; letter-spacing:0.4pt;
+            background:#fafafa; max-width:95%; word-break:break-all;
+        }
+        .formula-box.small { font-size:10pt; padding:7px 10px; }
+        .var-meaning { font-size:9pt; margin-top:4px; text-align:left; font-family:"Helvetica Neue", Helvetica, Arial, sans-serif; font-weight:400; line-height:1.4; }
+        .interpretation { font-size:9pt; font-style:italic; margin-top:3px; text-align:left; font-weight:400; font-family:"Helvetica Neue", Helvetica, Arial, sans-serif; }
+        .interview-note { font-size:8.5pt; font-weight:700; margin-top:3px; text-align:left; font-family:"Helvetica Neue", Helvetica, Arial, sans-serif; text-transform:uppercase; letter-spacing:0.3pt; }
+        table { width:100%; border-collapse:collapse; margin:8px 0 10px 0; font-size:9pt; }
+        table th { background-color:#e8e8e8; border:1.5px solid var(--border); padding:6px 7px; text-align:left; font-weight:700; text-transform:uppercase; letter-spacing:0.3pt; font-size:8.5pt; }
+        table td { border:1px solid var(--light-border); padding:5px 7px; vertical-align:top; }
+        .compact-table td, .compact-table th { padding:3px 5px; font-size:8.5pt; }
+        .divider { border:none; border-top:2px solid var(--border); margin:14px 0; }
+        .divider-thin { border:none; border-top:1px solid var(--light-border); margin:8px 0; }
+        .two-col { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin:6px 0; }
+        @media screen and (max-width:600px) { .two-col { grid-template-columns:1fr; } }
+        .highlight-box { border:2px dashed var(--border); padding:8px 12px; margin:8px 0; background:#fdfdfd; }
+        .flow-arrow { text-align:center; font-weight:900; font-size:10pt; margin:2px 0; letter-spacing:1pt; }
+        .qa-block { margin:6px 0; padding-left:8px; border-left:3px solid var(--border); }
+        .qa-block .q { font-weight:700; font-size:10pt; }
+        .qa-block .a { font-size:9.5pt; margin-left:4px; }
+        .cram-bullet { font-size:9pt; margin-bottom:2px; line-height:1.35; }
+        .ultra-box { border:3px solid var(--border); padding:10px 14px; margin:12px 0; background:#fafafa; }
+        .ultra-box h3 { border-left:none; text-align:center; font-size:13pt; margin-top:0; padding-left:0; }
+        .ultra-box .row { display:flex; flex-wrap:wrap; gap:4px 12px; margin:3px 0; font-size:9.5pt; }
+        .ultra-box .row strong { min-width:130px; display:inline-block; font-size:9pt; text-transform:uppercase; letter-spacing:0.3pt; }
+    </style>
+</head>
+<body>
+
+    <h1>Vector Stores & ANN</h1>
+    <p class="subtitle">Efficient storage and retrieval of high‑dimensional vectors – brute‑force, HNSW, IVF centroid‑based, and CRUD operations.</p>
+
+    <!-- 1. CORE IDEA -->
+    <h2>1. Core Idea</h2>
+    <ul>
+        <li><strong>What is a Vector Store?</strong> A specialized database optimized to store, index, and search high‑dimensional vectors (embeddings) using similarity metrics (cosine, dot product, Euclidean). It’s the backbone of semantic search and RAG systems.</li>
+        <li><strong>Why do we need it?</strong> When you have millions of document chunks, linear brute‑force scan is too slow. Vector stores implement Approximate Nearest Neighbour (ANN) algorithms that trade a tiny amount of accuracy for massive speedups.</li>
+        <li><strong>Key techniques:</strong> Brute‑force (exact, slow), HNSW (graph‑based, fast, memory‑intensive), IVF (clustering + inverted files, balanced), and many others (PQ, DiskANN).</li>
+        <li><strong>CRUD:</strong> Vector stores support Create (insert), Read (search), Update (modify vectors/metadata), and Delete (remove vectors) – essential for dynamic, real‑world applications.</li>
+    </ul>
+    <hr class="divider">
+
+    <!-- 2. BRUTE FORCE (EXACT SEARCH) -->
+    <h2>2. Brute‑Force (Exact) Search</h2>
+    <ul>
+        <li><strong>How it works:</strong> For a query vector $\mathbf{q}$, compute the similarity (e.g., cosine) between $\mathbf{q}$ and every stored vector $\mathbf{v}_i$. Sort all results and return the top‑$k$.</li>
+        <li><strong>Complexity:</strong> $O(N \cdot d)$ per query, where $N$ = number of vectors, $d$ = dimension. Linear in $N$.</li>
+        <li><strong>Pros:</strong> Always returns the exact top‑$k$ (perfect recall). No index build time.</li>
+        <li><strong>Cons:</strong> Infeasible for large $N$ (millions) – latency grows linearly. Memory‑intensive if all vectors must be loaded.</li>
+        <li><strong>When to use:</strong> Small datasets (&lt; 10k vectors), benchmarking, or when 100% recall is mandatory and latency is not a concern.</li>
+    </ul>
+    <hr class="divider">
+
+    <!-- 3. HNSW (HIERARCHICAL NAVIGABLE SMALL WORLD) -->
+    <h2>3. HNSW – Graph‑Based ANN</h2>
+    <h3>3.1 Intuition</h3>
+    <p>Imagine a multi‑layer graph. The top layer has few nodes (long‑range connections). Lower layers add more nodes and finer‑grained connections. Search starts at the top and greedily moves to the nearest neighbour, descending to lower layers for refinement.</p>
+    <h3>3.2 How it Works</h3>
+    <ul>
+        <li><strong>Index building:</strong> Insert vectors one by one. For each new vector, connect it to its $M$ nearest neighbours at each layer. The probability of a vector appearing in a higher layer is $1/\text{ml}$ (scaling factor).</li>
+        <li><strong>Search:</strong> Start at an entry point in the top layer. Greedily move to the closest neighbour until no closer neighbour is found. Descend one layer, repeat. At the bottom layer, collect top‑$k$ using a candidate list.</li>
+        <li><strong>Key parameters:</strong> $M$ (max connections per node, typical 16‑64), <code>efConstruction</code> (beam width during build, typical 200‑500), <code>efSearch</code> (beam width during query, larger → higher accuracy but slower).</li>
+        <li><strong>Complexity:</strong> Search approx $O(\log N)$. Build time $O(N \log N)$.</li>
+        <li><strong>Memory:</strong> Stores the full graph: $O(N \cdot M)$ edges. High memory footprint for large $N$.</li>
+    </ul>
+
+    <h3>3.3 Pros & Cons</h3>
+    <ul>
+        <li><strong>✅ Fast:</strong> Sub‑linear query time, very high recall (&gt; 99%) with proper tuning.</li>
+        <li><strong>✅ Incremental:</strong> Supports insertion without full rebuild.</li>
+        <li><strong>❌ Memory hungry:</strong> Graph storage can be several times the raw vectors.</li>
+        <li><strong>❌ Build time:</strong> Construction is slower than some alternatives, especially for high $M$ and $efConstruction$.</li>
+    </ul>
+    <hr class="divider">
+
+    <!-- 4. IVF – INVERTED FILE (CENTROID‑BASED) -->
+    <h2>4. IVF – Inverted File with Clustering</h2>
+    <h3>4.1 Intuition</h3>
+    <p>First, partition the vector space into clusters (e.g., using k‑means). For each cluster, store a centroid and an inverted list (posting list) of all vectors belonging to that cluster. At query time, only probe the nearest centroids and search within those lists.</p>
+    <h3>4.2 How it Works</h3>
+    <ul>
+        <li><strong>Index building:</strong> Run $k$‑means on a training set of vectors to obtain <code>nlist</code> centroids (e.g., 4096). For each vector in the dataset, find its nearest centroid and append the vector (or its ID) to that cluster’s inverted list.</li>
+        <li><strong>Search:</strong> Compute distances between the query and all centroids. Select the top <code>nprobe</code> clusters (e.g., 10). Perform brute‑force or another ANN method within those clusters only.</li>
+        <li><strong>Key parameters:</strong> <code>nlist</code> (number of clusters, larger → finer granularity, but overhead), <code>nprobe</code> (number of clusters to probe during search, higher → more accurate but slower).</li>
+        <li><strong>Complexity:</strong> Search time proportional to $(\text{nprobe} / \text{nlist}) \cdot N$ on average. With large $N$ and small $\text{nprobe}$, huge speedup.</li>
+        <li><strong>Memory:</strong> Stores only the centroid + inverted lists (vectors themselves). Often combined with Product Quantization (IVF‑PQ) to compress vectors and reduce memory further.</li>
+    </ul>
+
+    <h3>4.3 Pros & Cons</h3>
+    <ul>
+        <li><strong>✅ Scalable:</strong> Handles billions of vectors when combined with PQ.</li>
+        <li><strong>✅ Memory efficient (with PQ):</strong> Compressed vectors reduce storage drastically.</li>
+        <li><strong>✅ Tunable:</strong> <code>nprobe</code> gives direct speed/accuracy trade‑off.</li>
+        <li><strong>❌ Requires training:</strong> Must pre‑train k‑means centroids (offline).</li>
+        <li><strong>❌ Less adaptive:</strong> Cluster sizes can become skewed; some clusters may be heavily probed.</li>
+    </ul>
+    <hr class="divider">
+
+    <!-- 5. COMPARISON TABLE -->
+    <h2>5. Comparison: Brute‑Force vs HNSW vs IVF</h2>
+    <table>
+        <tr><th>Aspect</th><th>Brute‑Force</th><th>HNSW</th><th>IVF (Centroid‑Based)</th></tr>
+        <tr><td><strong>Recall</strong></td><td>100% (exact)</td><td>~99% (tunable)</td><td>90‑99% (depends on nprobe)</td></tr>
+        <tr><td><strong>Query speed</strong></td><td>Slow, $O(N \cdot d)$</td><td>Very fast, ~$O(\log N)$</td><td>Fast, scales with nprobe</td></tr>
+        <tr><td><strong>Index build</strong></td><td>None</td><td>$O(N \log N)$, slow</td><td>Requires k‑means training</td></tr>
+        <tr><td><strong>Memory</strong></td><td>Raw vectors only</td><td>Raw vectors + graph (high)</td><td>Raw vectors + centroids + lists; can be compressed with PQ</td></tr>
+        <tr><td><strong>Update/Delete</strong></td><td>Trivial</td><td>Supported, but may degrade over time</td><td>Supported, but requires cluster reassignment</td></tr>
+        <tr><td><strong>Best for</strong></td><td>Small datasets (&lt;10k)</td><td>High‑recall, medium‑scale (~1‑10M)</td><td>Large scale (&gt;10M), memory‑constrained</td></tr>
+    </table>
+    <hr class="divider">
+
+    <!-- 6. CRUD OPERATIONS -->
+    <h2>6. CRUD Operations in Vector Stores</h2>
+    <table>
+        <tr><th>Operation</th><th>Description</th><th>Examples / Notes</th></tr>
+        <tr><td><strong>Create (Insert)</strong></td><td>Add new vectors with an ID and optional metadata (e.g., source, page). For ANN indexes, vectors are inserted into the graph (HNSW) or assigned to a cluster (IVF).</td><td><code>add(vectors, ids, metadata)</code></td></tr>
+        <tr><td><strong>Read (Query / Search)</strong></td><td>Given a query vector and top‑$k$, return the $k$ most similar vectors (with scores and metadata). Supports metadata filtering (pre‑ or post‑filtering).</td><td><code>search(query_vector, k=5, filter={"category": "sports"})</code></td></tr>
+        <tr><td><strong>Update</strong></td><td>Modify the embedding vector and/or metadata of an existing document. Often implemented as a delete + re‑insert. HNSW may rebuild local connections.</td><td>Update metadata: in‑place if storage supports it. Update vector: re‑index.</td></tr>
+        <tr><td><strong>Delete</strong></td><td>Remove a vector by its ID or by a metadata filter. In HNSW, neighbor links must be repaired; in IVF, the vector is removed from the inverted list.</td><td><code>delete(ids=["id1", "id2"])</code> or <code>delete(filter={"date": {"$lt": "2023-01-01"}})</code></td></tr>
+    </table>
+    <h3>6.1 Metadata & Filtering</h3>
+    <ul>
+        <li><strong>Pre‑filtering:</strong> Apply metadata filter before ANN search. Works well if the filter is very selective; otherwise, may scan too many vectors.</li>
+        <li><strong>Post‑filtering:</strong> Retrieve top‑$k'$ ($k' > k$) candidates via ANN, then apply metadata filter. Ensures $k$ results but may miss relevant vectors if the filter eliminates many candidates.</li>
+        <li>Best practice: Use a hybrid approach or tune $k'$ according to filter selectivity.</li>
+    </ul>
+    <hr class="divider">
+
+    <!-- 7. IMPORTANCE IN RAG & LLM APPS -->
+    <h2>7. Why Vector Stores Matter</h2>
+    <ul>
+        <li><strong>Fast retrieval:</strong> Sub‑100ms response times even with millions of documents, essential for interactive LLM applications.</li>
+        <li><strong>Scalability:</strong> Horizontal scaling and cloud‑native designs (Pinecone, Weaviate) handle growing data without degrading performance.</li>
+        <li><strong>Flexible metadata:</strong> Combine semantic search with structured filters (e.g., date, author, category) for precise results.</li>
+        <li><strong>Integration:</strong> Plugs directly into RAG pipelines: embed → insert; query → search → augment prompt → generate.</li>
+        <li><strong>Persistence:</strong> Data survives restarts; allows incremental indexing and real‑time updates.</li>
+    </ul>
+    <hr class="divider">
+
+    <!-- 8. INTERVIEW QUESTIONS -->
+    <h2>8. Interview Questions</h2>
+    <div class="qa-block"><p class="q">Q1: Why can’t we just use brute‑force search for all retrieval tasks?</p><p class="a">A: Brute‑force scales linearly with the number of vectors ($O(N)$). For millions of vectors, latency becomes unacceptable (e.g., hundreds of milliseconds or more). ANN methods trade a tiny accuracy loss for orders‑of‑magnitude speedup.</p></div>
+    <div class="qa-block"><p class="q">Q2: Explain how HNSW achieves fast search. What are its key parameters?</p><p class="a">A: HNSW builds a multi‑layer graph where each node connects to its $M$ nearest neighbours. Search starts at the top layer and greedily descends. Parameters: $M$ (connections per node), <code>efConstruction</code> (build quality), <code>efSearch</code> (search quality). Higher values improve recall at the cost of speed and memory.</p></div>
+    <div class="qa-block"><p class="q">Q3: Describe the IVF algorithm and how it uses centroids.</p><p class="a">A: IVF runs k‑means on training vectors to obtain <code>nlist</code> centroids. Each vector is assigned to its nearest centroid, forming an inverted list per cluster. At query time, only the top <code>nprobe</code> closest clusters are searched. It’s very memory‑efficient when combined with PQ.</p></div>
+    <div class="qa-block"><p class="q">Q4: How do vector stores handle CRUD operations while maintaining search accuracy?</p><p class="a">A: Insertions add vectors to the index (HNSW adds nodes and edges; IVF assigns to clusters). Deletions mark vectors as removed and may require periodic index maintenance. Updates often delete and re‑insert. Metadata is typically stored separately and used for filtering during search.</p></div>
+    <div class="qa-block"><p class="q">Q5: What is the difference between pre‑filtering and post‑filtering in a vector search?</p><p class="a">A: Pre‑filtering reduces the search space to vectors matching a metadata filter before ANN, which can be efficient if the filter is selective. Post‑filtering retrieves a larger candidate set via ANN and then applies the metadata filter; it guarantees $k$ results but may miss vectors if the candidate set doesn’t include them. Hybrid tuning is often needed.</p></div>
+    <hr class="divider">
+
+    <!-- 9. COMMON MISTAKES -->
+    <h2>9. Common Mistakes</h2>
+    <table>
+        <tr><th>❌ Wrong Belief</th><th>✅ Correct Understanding</th></tr>
+        <tr><td>"ANN returns exactly the same results as brute‑force."</td><td>ANN is approximate; it may miss the true nearest neighbours. Recall can be tuned but is never 100% guaranteed.</td></tr>
+        <tr><td>"HNSW works out‑of‑the‑box without tuning."</td><td>Parameters like $M$ and <code>efSearch</code> heavily influence recall and latency; they must be tuned per dataset and performance target.</td></tr>
+        <tr><td>"IVF can be used without training."</td><td>IVF requires k‑means training (offline) to build centroids. Without training, it cannot partition the space.</td></tr>
+        <tr><td>"Vector stores are only for retrieval; they can't filter by metadata."</td><td>Modern vector stores support rich metadata filtering alongside vector search, enabling hybrid queries.</td></tr>
+        <tr><td>"Once a vector is inserted, it can never be updated."</td><td>While some stores prefer immutable vectors, most support updates (via delete+insert) and metadata modifications.</td></tr>
+    </table>
+    <hr class="divider">
+
+    <!-- 10. EXAM CRAM FACTS -->
+    <h2>10. Exam Cram Facts (Day‑Before Revision)</h2>
+    <ol>
+        <li class="cram-bullet">Vector stores index high‑dimensional vectors and support similarity search at scale.</li>
+        <li class="cram-bullet">Brute‑force: $O(N \cdot d)$, 100% recall, only for small $N$.</li>
+        <li class="cram-bullet">HNSW: multi‑layer graph, parameters $M$, efConstruction, efSearch. Fast, high recall, memory‑intensive.</li>
+        <li class="cram-bullet">IVF: k‑means clustering, inverted lists. Parameters: nlist, nprobe. Scalable, memory‑efficient with PQ.</li>
+        <li class="cram-bullet">CRUD: Create (insert vector + metadata), Read (ANN search + metadata filter), Update (often delete+insert), Delete (remove by ID/filter).</li>
+        <li class="cram-bullet">Filtering: pre‑filtering (filter then search), post‑filtering (search then filter). Choose based on selectivity.</li>
+        <li class="cram-bullet">ANN trades a tiny accuracy loss (recall ~99%) for 10‑1000× speedup over brute‑force.</li>
+        <li class="cram-bullet">Popular vector stores: Pinecone, Weaviate, Milvus, Qdrant, Chroma, FAISS (library).</li>
+        <li class="cram-bullet">RAG pipeline: query → embed → ANN search → retrieve chunks → augment prompt → generate.</li>
+    </ol>
+    <hr class="divider">
+
+    <!-- 11. ULTRA FAST REVISION -->
+    <h2>11. Ultra‑Fast Revision (60 Seconds)</h2>
+    <div class="ultra-box">
+        <h3>⚡ Vector Stores & ANN – 60‑Second Blitz</h3>
+        <div class="row"><strong>Why:</strong> Fast similarity search on millions of embeddings. Replaces slow brute‑force.</div>
+        <div class="row"><strong>Brute‑Force:</strong> Exact, $O(N \cdot d)$. Only for tiny datasets.</div>
+        <div class="row"><strong>HNSW:</strong> Graph‑based, log‑time search. Parameters $M$, efSearch. High memory, high recall.</div>
+        <div class="row"><strong>IVF:</strong> Cluster with k‑means, invert lists. nlist centroids, nprobe clusters probed. Scalable, often + PQ.</div>
+        <div class="row"><strong>CRUD:</strong> Insert (vector + metadata), Query (ANN + filter), Update (delete+insert), Delete (by ID/metadata).</div>
+        <div class="row"><strong>Accuracy vs Speed:</strong> Tune efSearch / nprobe; more compute → higher recall.</div>
+        <div class="row"><strong>RAG:</strong> Query embed → ANN → top‑k chunks → LLM prompt.</div>
+        <div class="row"><strong>Takeaway:</strong> <strong>Vector stores with ANN make real‑time semantic search possible at scale.</strong></div>
+    </div>
+    <hr class="divider">
+    <p style="text-align:center;font-size:8pt;margin-top:8px;font-weight:700;">— END OF VECTOR STORES & ANN CHEAT SHEET —</p>
+</body>
+</html>
