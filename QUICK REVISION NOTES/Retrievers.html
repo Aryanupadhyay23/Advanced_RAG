@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Retriever Techniques – Cheat Sheet</title>
+    <script>
+        MathJax = { tex: { inlineMath: [['$', '$'], ['\\(', '\\)']] }, svg: { fontCache: 'global' } };
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js" async></script>
+    <style>
+        :root {
+            --bg: #ffffff;
+            --text: #000000;
+            --border: #000000;
+            --box-bg: #ffffff;
+            --rule: #000000;
+            --table-border: #000000;
+            --light-border: #cccccc;
+        }
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body {
+            background: var(--bg); color: var(--text);
+            font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+            font-size: 10pt; line-height: 1.45;
+            max-width: 210mm; margin: 0 auto;
+            padding: 8mm 10mm 12mm 10mm;
+            -webkit-print-color-adjust: exact; print-color-adjust: exact;
+        }
+        @media print {
+            body { padding:8mm 10mm 12mm 10mm; font-size:9pt; }
+            @page { size: A4; margin: 0; }
+            .page-break { page-break-before: always; }
+            .no-break { page-break-inside: avoid; }
+        }
+        @media screen and (max-width:600px) {
+            body { padding:4mm 5mm; font-size:8.5pt; }
+        }
+        h1 {
+            font-size: 20pt; font-weight:900; text-align:center; letter-spacing:1.2pt;
+            text-transform:uppercase; border:3px solid var(--border); padding:10px 16px;
+            margin-bottom:6px; line-height:1.2;
+        }
+        .subtitle { text-align:center; font-size:10pt; font-style:italic; margin-bottom:12px; border-bottom:2px solid var(--border); padding-bottom:6px; }
+        h2 { font-size:14pt; font-weight:900; text-transform:uppercase; border-bottom:2.5px solid var(--border); padding-bottom:3px; margin-top:18px; margin-bottom:8px; letter-spacing:0.8pt; }
+        h3 { font-size:11.5pt; font-weight:700; margin-top:12px; margin-bottom:6px; text-transform:uppercase; letter-spacing:0.4pt; border-left:4px solid var(--border); padding-left:8px; }
+        h4 { font-size:10pt; font-weight:700; margin-top:8px; margin-bottom:4px; }
+        p { margin-bottom:4px; }
+        ul { list-style-type:square; padding-left:18px; margin-bottom:6px; }
+        ul li { margin-bottom:2px; }
+        ul.compact li { margin-bottom:1px; line-height:1.3; }
+        .formula-box {
+            border:2px solid var(--border); padding:10px 14px; margin:10px auto;
+            text-align:center; font-size:12pt; font-weight:700;
+            font-family:"Courier New", Courier, monospace; letter-spacing:0.4pt;
+            background:#fafafa; max-width:95%; word-break:break-all;
+        }
+        .formula-box.small { font-size:10pt; padding:7px 10px; }
+        .var-meaning { font-size:9pt; margin-top:4px; text-align:left; font-family:"Helvetica Neue", Helvetica, Arial, sans-serif; font-weight:400; line-height:1.4; }
+        .interpretation { font-size:9pt; font-style:italic; margin-top:3px; text-align:left; font-weight:400; font-family:"Helvetica Neue", Helvetica, Arial, sans-serif; }
+        .interview-note { font-size:8.5pt; font-weight:700; margin-top:3px; text-align:left; font-family:"Helvetica Neue", Helvetica, Arial, sans-serif; text-transform:uppercase; letter-spacing:0.3pt; }
+        table { width:100%; border-collapse:collapse; margin:8px 0 10px 0; font-size:9pt; }
+        table th { background-color:#e8e8e8; border:1.5px solid var(--border); padding:6px 7px; text-align:left; font-weight:700; text-transform:uppercase; letter-spacing:0.3pt; font-size:8.5pt; }
+        table td { border:1px solid var(--light-border); padding:5px 7px; vertical-align:top; }
+        .compact-table td, .compact-table th { padding:3px 5px; font-size:8.5pt; }
+        .divider { border:none; border-top:2px solid var(--border); margin:14px 0; }
+        .divider-thin { border:none; border-top:1px solid var(--light-border); margin:8px 0; }
+        .two-col { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin:6px 0; }
+        @media screen and (max-width:600px) { .two-col { grid-template-columns:1fr; } }
+        .highlight-box { border:2px dashed var(--border); padding:8px 12px; margin:8px 0; background:#fdfdfd; }
+        .flow-arrow { text-align:center; font-weight:900; font-size:10pt; margin:2px 0; letter-spacing:1pt; }
+        .qa-block { margin:6px 0; padding-left:8px; border-left:3px solid var(--border); }
+        .qa-block .q { font-weight:700; font-size:10pt; }
+        .qa-block .a { font-size:9.5pt; margin-left:4px; }
+        .cram-bullet { font-size:9pt; margin-bottom:2px; line-height:1.35; }
+        .ultra-box { border:3px solid var(--border); padding:10px 14px; margin:12px 0; background:#fafafa; }
+        .ultra-box h3 { border-left:none; text-align:center; font-size:13pt; margin-top:0; padding-left:0; }
+        .ultra-box .row { display:flex; flex-wrap:wrap; gap:4px 12px; margin:3px 0; font-size:9.5pt; }
+        .ultra-box .row strong { min-width:130px; display:inline-block; font-size:9pt; text-transform:uppercase; letter-spacing:0.3pt; }
+    </style>
+</head>
+<body>
+
+    <h1>Retriever Techniques</h1>
+    <p class="subtitle">Similarity‑Based Search, Maximal Marginal Relevance (MMR), and Threshold‑Based Retrieval – controlling relevance and diversity.</p>
+
+    <!-- 1. CORE IDEA -->
+    <h2>1. Core Idea</h2>
+    <ul>
+        <li><strong>What is a Retriever?</strong> The component that, given a query embedding, fetches the most relevant document chunks from a vector store. It defines how similarity is computed and which results are ultimately passed to the generator.</li>
+        <li><strong>Why do retrieval strategies matter?</strong> Naive similarity search can return redundant, near‑identical chunks. MMR adds diversity. Threshold‑based retrieval prevents low‑quality context from entering the prompt. Together they control the <em>relevance</em>, <em>diversity</em>, and <em>quality</em> of the retrieved context.</li>
+        <li><strong>Key retrieval patterns:</strong></li>
+        <ul class="compact">
+            <li><strong>Similarity‑Based Search:</strong> Return top‑$k$ chunks ranked by cosine similarity (or dot product) to the query.</li>
+            <li><strong>MMR (Maximal Marginal Relevance):</strong> Re‑rank candidates to balance relevance against novelty, avoiding redundancy.</li>
+            <li><strong>Threshold‑Based:</strong> Filter out chunks whose similarity score is below a minimum threshold; ensures only sufficiently relevant context is used.</li>
+        </ul>
+    </ul>
+    <hr class="divider">
+
+    <!-- 2. SIMILARITY‑BASED SEARCH -->
+    <h2>2. Similarity‑Based (Semantic) Search</h2>
+    <h3>2.1 How It Works</h3>
+    <ol>
+        <li>Embed the user query $\mathbf{q}$ using the same embedding model used for the document chunks.</li>
+        <li>Compute the similarity score $s(\mathbf{q}, \mathbf{d}_i)$ for every document vector $\mathbf{d}_i$ in the vector store (e.g., cosine similarity).</li>
+        <li>Sort documents in descending order of similarity.</li>
+        <li>Return the top‑$k$ documents (or all documents above a threshold, depending on configuration).</li>
+    </ol>
+    <h3>2.2 Score Functions</h3>
+    <table>
+        <tr><th>Metric</th><th>Formula</th><th>Range</th><th>Notes</th></tr>
+        <tr><td>Cosine Similarity</td><td>$ \text{sim}(\mathbf{q}, \mathbf{d}) = \frac{\mathbf{q} \cdot \mathbf{d}}{\|\mathbf{q}\| \|\mathbf{d}\|} $</td><td>$[-1,1]$ (typically $[0,1]$ for modern embeddings)</td><td>Default in most RAG systems; magnitude‑invariant.</td></tr>
+        <tr><td>Dot Product</td><td>$ \text{sim}(\mathbf{q}, \mathbf{d}) = \mathbf{q} \cdot \mathbf{d} $</td><td>$(-\infty, \infty)$</td><td>Equivalent to cosine if vectors are $L^2$ normalized. Simpler, faster.</td></tr>
+        <tr><td>Euclidean Distance</td><td>$ d(\mathbf{q}, \mathbf{d}) = \|\mathbf{q} - \mathbf{d}\| $</td><td>$[0, \infty)$</td><td>Often converted to similarity via negative distance or exponential kernel.</td></tr>
+    </table>
+    <h3>2.3 Limitations of Pure Similarity Search</h3>
+    <ul>
+        <li><strong>Redundancy:</strong> Top‑$k$ results may be very similar to each other (e.g., multiple chunks from the same paragraph), wasting context window.</li>
+        <li><strong>No quality gating:</strong> Even low‑similarity results are returned if $k$ is larger than the number of relevant documents.</li>
+        <li><strong>Sensitive to embedding model quality:</strong> Poor embeddings → poor retrieval.</li>
+    </ul>
+    <hr class="divider">
+
+    <!-- 3. MMR (MAXIMAL MARGINAL RELEVANCE) -->
+    <h2>3. Maximal Marginal Relevance (MMR)</h2>
+    <h3>3.1 Concept</h3>
+    <p>MMR is a re‑ranking algorithm that selects documents iteratively, balancing <strong>relevance</strong> to the query and <strong>dissimilarity</strong> to already‑selected documents. It reduces redundancy by penalising candidates that are too similar to already‑chosen ones.</p>
+    <h3>3.2 Algorithm (Greedy Selection)</h3>
+    <ol>
+        <li>Retrieve an initial pool of $N$ candidates (e.g., top‑$N$ by similarity, with $N > k$).</li>
+        <li>Initialize the set of selected documents $S = \emptyset$.</li>
+        <li>For $i = 1$ to $k$:
+            <ul>
+                <li>For each candidate $\mathbf{d}$ not yet in $S$, compute the MMR score:</li>
+            </ul>
+        </li>
+    </ol>
+    <div class="formula-box">
+        $ \text{MMR}(\mathbf{d}) = \lambda \cdot \text{sim}(\mathbf{d}, \mathbf{q}) \;-\; (1 - \lambda) \cdot \max_{\mathbf{d}' \in S} \text{sim}(\mathbf{d}, \mathbf{d}') $
+    </div>
+    <p class="var-meaning"><strong>$\lambda \in [0,1]$</strong>: diversity parameter. $\lambda=1$ → pure relevance; $\lambda=0$ → pure diversity. $\text{sim}(\mathbf{d}, \mathbf{q})$ is relevance to query; $\text{sim}(\mathbf{d}, \mathbf{d}')$ is similarity to an already‑selected document (redundancy penalty).</p>
+    <p class="interpretation">The candidate with the highest MMR score is added to $S$. This repeats until $k$ documents are selected.</p>
+    <h3>3.3 Hyperparameters</h3>
+    <table>
+        <tr><th>Parameter</th><th>Effect</th><th>Typical Range</th></tr>
+        <tr><td>$\lambda$ (lambda)</td><td>Higher → favour relevance; Lower → favour diversity.</td><td>0.5 – 0.8</td></tr>
+        <tr><td>Fetch size ($N$)</td><td>Number of initial candidates to consider. Larger $N$ gives MMR more options to balance but increases computation.</td><td>$2k$ – $10k$</td></tr>
+        <tr><td>$k$ (final documents)</td><td>Number of documents to return after MMR selection.</td><td>As needed by the generator.</td></tr>
+    </table>
+    <h3>3.4 Advantages & Limitations</h3>
+    <ul>
+        <li><strong>✅ Pros:</strong> Increases diversity of context; avoids wasting context window on duplicate information; can improve answer completeness.</li>
+        <li><strong>❌ Cons:</strong> Computationally more expensive than top‑$k$ similarity (requires pairwise similarities). Greedy selection may not be globally optimal. Tuning $\lambda$ is domain‑dependent.</li>
+    </ul>
+    <hr class="divider">
+
+    <!-- 4. THRESHOLD‑BASED RETRIEVAL -->
+    <h2>4. Threshold‑Based Retrieval</h2>
+    <h3>4.1 Concept</h3>
+    <p>Instead of blindly returning the top‑$k$ documents, filter out any document whose similarity score is below a predefined minimum. Only documents that are <strong>sufficiently relevant</strong> are kept. If fewer than $k$ documents pass the threshold, the generator receives a shorter (or even empty) context.</p>
+    <h3>4.2 Types of Thresholds</h3>
+    <table>
+        <tr><th>Type</th><th>How It Works</th><th>Use Case</th></tr>
+        <tr><td><strong>Score Threshold</strong></td><td>Accept documents only if $\text{sim}(\mathbf{q}, \mathbf{d}) \ge \tau$. $\tau$ is a fixed value, e.g., 0.7.</td><td>When you want to ensure only highly relevant context is used.</td></tr>
+        <tr><td><strong>Top‑$k$ with Score Floor</strong></td><td>Retrieve top‑$k$ but then remove any that fall below the threshold.</td><td>Ensures both quantity ($k$) and quality limits.</td></tr>
+        <tr><td><strong>Adaptive / Percentile Threshold</strong></td><td>Use a threshold based on the score distribution (e.g., top‑10% of scores).</td><td>Dynamic adjustment for different queries.</td></tr>
+        <tr><td><strong>Low Relevance Fallback</strong></td><td>If no document meets the threshold, return a pre‑defined message or fallback answer instead of forcing poor context.</td><td>Critical when the knowledge base may not contain the answer.</td></tr>
+    </table>
+    <h3>4.3 Hyperparameters</h3>
+    <table>
+        <tr><th>Parameter</th><th>Effect if Increased</th><th>Typical Range</th></tr>
+        <tr><td>Score threshold $\tau$</td><td>Fewer documents pass → less context, but higher average relevance. Risk of missing the answer entirely.</td><td>0.3 – 0.8 (depends on embedding model)</td></tr>
+    </table>
+    <h3>4.4 Advantages & Limitations</h3>
+    <ul>
+        <li><strong>✅ Pros:</strong> Prevents low‑quality or unrelated context from confusing the generator. Acts as a safeguard against hallucination.</li>
+        <li><strong>❌ Cons:</strong> A fixed threshold may not work well across diverse queries (some queries naturally have lower similarity scores). If set too high, the retriever may return zero results.</li>
+    </ul>
+    <hr class="divider">
+
+    <!-- 5. COMBINING STRATEGIES -->
+    <h2>5. Combining Strategies</h2>
+    <ul>
+        <li><strong>MMR + Threshold:</strong> First filter candidates by a score threshold, then apply MMR on the remaining pool to select $k$ diverse, relevant documents. This provides both quality gating and diversity.</li>
+        <li><strong>Similarity + Threshold + Reranker:</strong> Retrieve top‑$N$ via similarity, apply a score threshold, then pass candidates through a more expensive cross‑encoder reranker, and finally apply MMR or another selection method.</li>
+        <li><strong>Fallback:</strong> If no document meets the threshold, either expand the search (hybrid retrieval, query expansion) or return a safe fallback response.</li>
+    </ul>
+    <hr class="divider">
+
+    <!-- 6. COMPARISON TABLE -->
+    <h2>6. Comparison of Retrieval Strategies</h2>
+    <table>
+        <tr><th>Strategy</th><th>Controls</th><th>Redundancy</th><th>Complexity</th><th>When to Use</th></tr>
+        <tr><td><strong>Similarity (Top‑$k$)</strong></td><td>Relevance only</td><td>High (duplicate or similar chunks)</td><td>Low</td><td>Simple RAG, small $k$, or when a reranker follows.</td></tr>
+        <tr><td><strong>MMR</strong></td><td>Relevance + Diversity</td><td>Low</td><td>Medium (pairwise similarity)</td><td>When the context window is large enough for diverse facts; summarisation, multi‑document QA.</td></tr>
+        <tr><td><strong>Score Threshold</strong></td><td>Relevance floor</td><td>Depends on $k$</td><td>Low</td><td>When you must enforce a minimum confidence; to avoid feeding noise to the LLM.</td></tr>
+        <tr><td><strong>MMR + Threshold</strong></td><td>Quality, Relevance, Diversity</td><td>Very Low</td><td>Medium</td><td>Production RAG where precision, recall, and diverse context are all critical.</td></tr>
+    </table>
+    <hr class="divider">
+
+    <!-- 7. INTERVIEW QUESTIONS -->
+    <h2>7. Interview Questions</h2>
+    <div class="qa-block"><p class="q">Q1: Why does pure similarity‑based retrieval often return redundant results?</p><p class="a">A: Because the top‑$k$ highest‑scoring chunks may all come from the same section or repeat similar information. Cosine similarity doesn’t penalise similarity among the retrieved documents themselves.</p></div>
+    <div class="qa-block"><p class="q">Q2: Explain the MMR formula. What does each term represent?</p><p class="a">A: $\text{MMR}(\mathbf{d}) = \lambda \cdot \text{sim}(\mathbf{d}, \mathbf{q}) - (1-\lambda) \cdot \max_{\mathbf{d}' \in S} \text{sim}(\mathbf{d}, \mathbf{d}')$. The first term measures relevance to the query; the second term penalises similarity to already‑selected documents, with $\lambda$ controlling the trade‑off.</p></div>
+    <div class="qa-block"><p class="q">Q3: How would you choose the score threshold $\tau$ in a RAG pipeline?</p><p class="a">A: By analysing the similarity score distribution of a held‑out set of query‑relevant document pairs. Set $\tau$ to balance precision (avoid false positives) and recall (avoid missing the answer). Often requires iterative tuning; adaptive or per‑query thresholds can be more robust.</p></div>
+    <div class="qa-block"><p class="q">Q4: Compare MMR and a simple top‑$k$ approach in terms of computational cost.</p><p class="a">A: MMR is more expensive because it requires computing pairwise similarities between candidates and selected documents ($O(k \cdot N)$). Top‑$k$ only sorts one list. For large $N$, MMR can be a bottleneck; optimised implementations or pre‑computed document similarities help.</p></div>
+    <div class="qa-block"><p class="q">Q5: What happens if the score threshold is set too high in a RAG system?</p><p class="a">A: The retriever may return zero or too few chunks, leading to the LLM receiving an empty or sparse context. This can cause the LLM to refuse to answer or to hallucinate. A fallback mechanism is essential.</p></div>
+    <hr class="divider">
+
+    <!-- 8. COMMON MISTAKES -->
+    <h2>8. Common Mistakes</h2>
+    <table>
+        <tr><th>❌ Wrong Belief</th><th>✅ Correct Understanding</th></tr>
+        <tr><td>"MMR always improves RAG results."</td><td>MMR helps when redundancy is a problem; if the top‑$k$ is already diverse, MMR may remove marginally useful but still relevant documents. Tune $\lambda$ and evaluate on your data.</td></tr>
+        <tr><td>"A score threshold of 0.7 works for every embedding model."</td><td>Different models produce different score distributions; a fixed threshold must be calibrated per model and dataset.</td></tr>
+        <tr><td>"If no document passes the threshold, just increase $k$."</td><td>Increasing $k$ doesn't improve relevance; it just adds more low‑similarity noise. Fix the retrieval pipeline (better embeddings, hybrid search) or accept a fallback.</td></tr>
+        <tr><td>"MMR can be applied on the full index without an initial similarity fetch."</td><td>MMR requires a candidate set; running it on millions of vectors is impractical. Always fetch top‑$N$ first.</td></tr>
+        <tr><td>"Threshold filtering is a replacement for diversity."</td><td>Threshold ensures quality; MMR ensures variety. They address different aspects and are often combined.</td></tr>
+    </table>
+    <hr class="divider">
+
+    <!-- 9. EXAM CRAM FACTS -->
+    <h2>9. Exam Cram Facts (Day‑Before Revision)</h2>
+    <ol>
+        <li class="cram-bullet">Retriever fetches relevant document chunks using similarity, MMR, or threshold strategies.</li>
+        <li class="cram-bullet">Similarity search: embed query, compute cosine, return top‑$k$. Fast but may be redundant.</li>
+        <li class="cram-bullet">MMR: iteratively selects documents maximising $\lambda \cdot \text{sim}(\mathbf{d}, \mathbf{q}) - (1-\lambda) \max \text{sim}(\mathbf{d}, \mathbf{d}')$. Balances relevance and diversity.</li>
+        <li class="cram-bullet">$\lambda = 1$ → pure relevance; $\lambda = 0$ → pure novelty. Typical range 0.5–0.8.</li>
+        <li class="cram-bullet">Threshold‑based: only keep documents with similarity score $\ge \tau$. Prevents low‑quality context.</li>
+        <li class="cram-bullet">If no document passes threshold → fallback strategy required.</li>
+        <li class="cram-bullet">MMR + Threshold: filter by score, then select diverse top‑$k$ from the high‑quality pool.</li>
+        <li class="cram-bullet">Complexity: MMR $O(k \cdot N)$ for $N$ candidates; similarity search $O(N \log k)$ with heap or $O(N)$.</li>
+    </ol>
+    <hr class="divider">
+
+    <!-- 10. ULTRA FAST REVISION -->
+    <h2>10. Ultra‑Fast Revision (60 Seconds)</h2>
+    <div class="ultra-box">
+        <h3>⚡ Retriever Strategies – 60‑Second Blitz</h3>
+        <div class="row"><strong>Similarity:</strong> Top‑$k$ by cosine. Fast, but can be redundant.</div>
+        <div class="row"><strong>MMR:</strong> Iteratively picks docs that are relevant AND dissimilar to already chosen ones. Parameter $\lambda$.</div>
+        <div class="row"><strong>MMR formula:</strong> $\lambda \cdot \text{sim}(d,q) - (1-\lambda) \max \text{sim}(d, d')$.</div>
+        <div class="row"><strong>Threshold:</strong> Only keep docs with similarity $\ge \tau$. Ensures quality; may return empty.</div>
+        <div class="row"><strong>Combine:</strong> Threshold first → MMR on survivors → diverse, relevant, high‑quality context.</div>
+        <div class="row"><strong>Key pitfalls:</strong> Fixed threshold needs calibration; MMR adds compute overhead.</div>
+        <div class="row"><strong>Golden rule:</strong> <strong>Use similarity for speed, MMR for diversity, threshold for quality – and a fallback when retrieval fails.</strong></div>
+    </div>
+    <hr class="divider">
+    <p style="text-align:center;font-size:8pt;margin-top:8px;font-weight:700;">— END OF RETRIEVER TECHNIQUES CHEAT SHEET —</p>
+</body>
+</html>

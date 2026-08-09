@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MMR – Maximal Marginal Relevance – Cheat Sheet</title>
+    <script>
+        MathJax = { tex: { inlineMath: [['$', '$'], ['\\(', '\\)']] }, svg: { fontCache: 'global' } };
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js" async></script>
+    <style>
+        :root {
+            --bg: #ffffff;
+            --text: #000000;
+            --border: #000000;
+            --box-bg: #ffffff;
+            --rule: #000000;
+            --table-border: #000000;
+            --light-border: #cccccc;
+        }
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body {
+            background: var(--bg); color: var(--text);
+            font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+            font-size: 10pt; line-height: 1.45;
+            max-width: 210mm; margin: 0 auto;
+            padding: 8mm 10mm 12mm 10mm;
+            -webkit-print-color-adjust: exact; print-color-adjust: exact;
+        }
+        @media print {
+            body { padding:8mm 10mm 12mm 10mm; font-size:9pt; }
+            @page { size: A4; margin: 0; }
+            .page-break { page-break-before: always; }
+            .no-break { page-break-inside: avoid; }
+        }
+        @media screen and (max-width:600px) {
+            body { padding:4mm 5mm; font-size:8.5pt; }
+        }
+        h1 {
+            font-size: 22pt; font-weight:900; text-align:center; letter-spacing:1.5pt;
+            text-transform:uppercase; border:3px solid var(--border); padding:10px 16px;
+            margin-bottom:6px; line-height:1.2;
+        }
+        .subtitle { text-align:center; font-size:10pt; font-style:italic; margin-bottom:12px; border-bottom:2px solid var(--border); padding-bottom:6px; }
+        h2 { font-size:14pt; font-weight:900; text-transform:uppercase; border-bottom:2.5px solid var(--border); padding-bottom:3px; margin-top:18px; margin-bottom:8px; letter-spacing:0.8pt; }
+        h3 { font-size:11.5pt; font-weight:700; margin-top:12px; margin-bottom:6px; text-transform:uppercase; letter-spacing:0.4pt; border-left:4px solid var(--border); padding-left:8px; }
+        h4 { font-size:10pt; font-weight:700; margin-top:8px; margin-bottom:4px; }
+        p { margin-bottom:4px; }
+        ul { list-style-type:square; padding-left:18px; margin-bottom:6px; }
+        ul li { margin-bottom:2px; }
+        ul.compact li { margin-bottom:1px; line-height:1.3; }
+        .formula-box {
+            border:2px solid var(--border); padding:10px 14px; margin:10px auto;
+            text-align:center; font-size:12pt; font-weight:700;
+            font-family:"Courier New", Courier, monospace; letter-spacing:0.4pt;
+            background:#fafafa; max-width:95%; word-break:break-all;
+        }
+        .formula-box.small { font-size:10pt; padding:7px 10px; }
+        .var-meaning { font-size:9pt; margin-top:4px; text-align:left; font-family:"Helvetica Neue", Helvetica, Arial, sans-serif; font-weight:400; line-height:1.4; }
+        .interpretation { font-size:9pt; font-style:italic; margin-top:3px; text-align:left; font-weight:400; font-family:"Helvetica Neue", Helvetica, Arial, sans-serif; }
+        .interview-note { font-size:8.5pt; font-weight:700; margin-top:3px; text-align:left; font-family:"Helvetica Neue", Helvetica, Arial, sans-serif; text-transform:uppercase; letter-spacing:0.3pt; }
+        table { width:100%; border-collapse:collapse; margin:8px 0 10px 0; font-size:9pt; }
+        table th { background-color:#e8e8e8; border:1.5px solid var(--border); padding:6px 7px; text-align:left; font-weight:700; text-transform:uppercase; letter-spacing:0.3pt; font-size:8.5pt; }
+        table td { border:1px solid var(--light-border); padding:5px 7px; vertical-align:top; }
+        .compact-table td, .compact-table th { padding:3px 5px; font-size:8.5pt; }
+        .divider { border:none; border-top:2px solid var(--border); margin:14px 0; }
+        .divider-thin { border:none; border-top:1px solid var(--light-border); margin:8px 0; }
+        .two-col { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin:6px 0; }
+        @media screen and (max-width:600px) { .two-col { grid-template-columns:1fr; } }
+        .highlight-box { border:2px dashed var(--border); padding:8px 12px; margin:8px 0; background:#fdfdfd; }
+        .flow-arrow { text-align:center; font-weight:900; font-size:10pt; margin:2px 0; letter-spacing:1pt; }
+        .qa-block { margin:6px 0; padding-left:8px; border-left:3px solid var(--border); }
+        .qa-block .q { font-weight:700; font-size:10pt; }
+        .qa-block .a { font-size:9.5pt; margin-left:4px; }
+        .cram-bullet { font-size:9pt; margin-bottom:2px; line-height:1.35; }
+        .ultra-box { border:3px solid var(--border); padding:10px 14px; margin:12px 0; background:#fafafa; }
+        .ultra-box h3 { border-left:none; text-align:center; font-size:13pt; margin-top:0; padding-left:0; }
+        .ultra-box .row { display:flex; flex-wrap:wrap; gap:4px 12px; margin:3px 0; font-size:9.5pt; }
+        .ultra-box .row strong { min-width:130px; display:inline-block; font-size:9pt; text-transform:uppercase; letter-spacing:0.3pt; }
+    </style>
+</head>
+<body>
+
+    <h1>Maximal Marginal Relevance (MMR)</h1>
+    <p class="subtitle">The classic algorithm to balance query relevance and document diversity – core to reducing redundancy in retrieval‑augmented generation.</p>
+
+    <!-- 1. CORE IDEA -->
+    <h2>1. Core Idea</h2>
+    <ul>
+        <li><strong>What is MMR?</strong> A greedy re‑ranking algorithm that selects documents one by one, each time picking the document that maximises a combination of <em>relevance to the query</em> and <em>dissimilarity to documents already selected</em>. It mitigates the problem where top‑$k$ similarity results are near‑duplicates.</li>
+        <li><strong>Why does it exist?</strong> In information retrieval and RAG, feeding a language model multiple nearly identical chunks wastes context window and provides no new information. MMR diversifies the retrieved set, ensuring each added document contributes unique content.</li>
+        <li><strong>Key trade‑off:</strong> Controlled by a single scalar parameter $\lambda$ (lambda): $\lambda=1$ gives pure relevance ranking; $\lambda=0$ gives maximum diversity (almost no regard for query). Typical values lie in $[0.5, 0.8]$.</li>
+        <li><strong>Origin:</strong> Introduced by Carbonell & Goldstein (1998) for text summarisation and information retrieval. Now widely used in RAG pipelines, recommendation systems, and search result diversification.</li>
+    </ul>
+    <hr class="divider">
+
+    <!-- 2. MATHEMATICAL FORMULATION -->
+    <h2>2. Mathematical Formula</h2>
+    <p>Let $D$ be the candidate pool (e.g., top‑$N$ documents from an initial similarity search). Let $S$ be the set of already selected documents, initially empty. For each candidate document $d \in D \setminus S$, the MMR score is:</p>
+    <div class="formula-box">
+        $ \text{MMR}(d) = \lambda \cdot \text{sim}_1(d, q) \;-\; (1-\lambda) \cdot \max_{d' \in S} \text{sim}_2(d, d') $
+    </div>
+    <p class="var-meaning"><strong>$q$</strong>: query vector. <strong>$\text{sim}_1(d, q)$</strong>: relevance similarity (e.g., cosine between document and query). <strong>$\text{sim}_2(d, d')$</strong>: redundancy similarity (e.g., cosine between document and an already‑selected document $d'$). <strong>$\max_{d' \in S}$</strong> penalises the document by its highest similarity to any previously selected one. <strong>$\lambda \in [0,1]$</strong> balances the two terms.</p>
+    <p class="interpretation">The document that achieves the highest MMR score is added to $S$. This process repeats until $k$ documents are selected.</p>
+    <p class="interview-note">🔍 Interview: “Why the max? Because a single highly similar already‑selected document is enough to make a new document redundant – we need to penalise the worst redundancy.”</p>
+    <hr class="divider">
+
+    <!-- 3. ALGORITHM (STEP‑BY‑STEP) -->
+    <h2>3. Greedy Selection Algorithm</h2>
+    <div class="no-break">
+        <div class="flow-arrow">1. RETRIEVE INITIAL CANDIDATES: Perform a similarity search (e.g., cosine) to obtain a pool $D$ of $N$ documents (typically $N > k$, e.g., $N = 2k$ to $10k$).</div>
+        <div class="flow-arrow">2. INITIALISE: Selected set $S \leftarrow \emptyset$.</div>
+        <div class="flow-arrow">3. FOR $i = 1$ to $k$:</div>
+        <div class="flow-arrow">&nbsp;&nbsp; a. For each candidate $d \in D \setminus S$, compute $\text{score}(d) = \lambda \cdot \text{sim}_1(d, q) - (1-\lambda) \cdot \max_{d' \in S} \text{sim}_2(d, d')$.</div>
+        <div class="flow-arrow">&nbsp;&nbsp; b. Select $d^* = \arg\max_{d \in D \setminus S} \text{score}(d)$.</div>
+        <div class="flow-arrow">&nbsp;&nbsp; c. Add $d^*$ to $S$.</div>
+        <div class="flow-arrow">4. RETURN $S$ (the $k$ diversified, relevant documents).</div>
+    </div>
+    <p style="text-align:center;font-size:8.5pt;margin-top:4px;"><strong>Complexity:</strong> $O(k \cdot N \cdot |S|)$ similarity computations, which becomes $O(k^2 N)$ if $|S|$ grows to $k$. For small $k$ (e.g., 5‑20), it’s manageable. For larger $k$, optimisations are needed (e.g., pre‑compute pairwise similarities).</p>
+    <hr class="divider">
+
+    <!-- 4. UNDERSTANDING LAMBDA (λ) -->
+    <h2>4. The Role of Lambda ($\lambda$)</h2>
+    <table>
+        <tr><th>$\lambda$ Value</th><th>Behaviour</th><th>When to Use</th></tr>
+        <tr><td><strong>1.0</strong></td><td>Pure relevance: identical to top‑$k$ similarity ranking. No diversity penalty.</td><td>When the candidate pool is already naturally diverse, or $k$ is very small.</td></tr>
+        <tr><td><strong>0.8 – 0.9</strong></td><td>Strong relevance, mild diversity. Prevents extreme duplicates (exact near‑copies) but keeps highly related content.</td><td>Standard RAG where some topical overlap is acceptable, but exact duplicate chunks should be avoided.</td></tr>
+        <tr><td><strong>0.5 – 0.7</strong></td><td>Balanced relevance and diversity. Ensures retrieved documents cover different sub‑topics or aspects.</td><td>Multi‑document QA, summarisation, or when the generator benefits from diverse perspectives.</td></tr>
+        <tr><td><strong>0.0 – 0.3</strong></td><td>Almost purely diversity‑driven; relevance is largely ignored. Risks selecting documents that are not about the query at all.</td><td>Seldom used in practice; may serve as an exploratory diversity analysis.</td></tr>
+    </table>
+    <p class="var-meaning">In practice, $\lambda$ should be tuned on a validation set with a metric that balances answer correctness and context utilisation.</p>
+    <hr class="divider">
+
+    <!-- 5. GEOMETRIC INTUITION -->
+    <h2>5. Geometric Intuition</h2>
+    <div class="two-col">
+        <div>
+            <h4>🔹 The “Cluster Skipper”</h4>
+            <p>Imagine document vectors as points in space, with clusters representing similar topics. MMR first picks the point closest to the query. Then it penalises points near that chosen one, effectively jumping to a new cluster. It continues until $k$ points from different clusters are selected, ensuring coverage of the space rather than crowding in one dense region.</p>
+        </div>
+        <div>
+            <h4>🔹 The “Greedy Frontier”</h4>
+            <p>At each step, MMR draws a frontier: the candidate that offers the best trade‑off between moving towards the query (relevance) and moving away from already‑selected points (diversity). It’s like a hiking path that heads in the general query direction but always tries to explore new ground.</p>
+        </div>
+    </div>
+    <hr class="divider">
+
+    <!-- 6. HYPERPARAMETERS & TUNING -->
+    <h2>6. Hyperparameters & Tuning</h2>
+    <table>
+        <tr><th>Parameter</th><th>Meaning</th><th>Typical Range</th><th>Effect of Increase</th></tr>
+        <tr><td><strong>$\lambda$</strong></td><td>Relevance–diversity trade‑off</td><td>0.5 – 0.8</td><td>More relevance, less diversity; may reintroduce redundancy.</td></tr>
+        <tr><td><strong>$N$ (candidate pool size)</strong></td><td>Number of initial top documents to consider</td><td>$2k$ – $10k$</td><td>Larger pool gives MMR more options to find diverse, relevant documents; increases compute.</td></tr>
+        <tr><td><strong>$k$ (final set size)</strong></td><td>Number of documents to return</td><td>Depends on generator context window</td><td>More documents increase context but risk including lower‑quality ones; MMR diversity effect weaker if $k$ is very small.</td></tr>
+        <tr><td><strong>Similarity function</strong></td><td>Metric for $\text{sim}_1$ and $\text{sim}_2$</td><td>Cosine (most common), dot product, Euclidean (negative)</td><td>Cosine is preferred for its magnitude invariance; dot product works when vectors are $L^2$‑normalised.</td></tr>
+    </table>
+    <p class="var-meaning">In many implementations (e.g., LangChain’s <code>MaxMarginalRelevanceSearch</code>), $\text{sim}_1$ and $\text{sim}_2$ both use cosine similarity.</p>
+    <hr class="divider">
+
+    <!-- 7. VARIANTS & EXTENSIONS -->
+    <h2>7. Variants & Extensions of MMR</h2>
+    <ul>
+        <li><strong>Scaled MMR:</strong> Normalise the relevance and diversity terms by their standard deviations before combining, to balance their dynamic ranges. This avoids one term dominating when the score distributions differ greatly.</li>
+        <li><strong>Soft MMR:</strong> Instead of $\max$, use an average or a soft‑max aggregation of similarities to already‑selected documents, providing a smoother penalty.</li>
+        <li><strong>Adaptive $\lambda$:</strong> Start with high $\lambda$ for the first few selections (to guarantee relevance) and gradually decrease $\lambda$ to increase diversity as the set grows.</li>
+        <li><strong>Query‑specific MMR:</strong> Adjust $\lambda$ per query based on its ambiguity. For ambiguous queries, increase diversity (lower $\lambda$).</li>
+        <li><strong>MMR with constraints:</strong> Enforce that selected documents come from different sources, sections, or timestamps, using metadata filters on top of MMR.</li>
+    </ul>
+    <hr class="divider">
+
+    <!-- 8. COMPARISON: MMR vs. OTHER RETRIEVAL STRATEGIES -->
+    <h2>8. Comparison: MMR vs. Top‑$k$ vs. Random vs. Other Diversity Methods</h2>
+    <table>
+        <tr><th>Method</th><th>Diversity</th><th>Relevance</th><th>Complexity</th><th>Use Case</th></tr>
+        <tr><td><strong>Top‑$k$ Similarity</strong></td><td>Low – often returns near‑duplicates.</td><td>High (all are most relevant).</td><td>Low</td><td>When diversity is not an issue, or a reranker follows.</td></tr>
+        <tr><td><strong>MMR</strong></td><td>High – explicitly penalises redundancy.</td><td>Good – controlled by $\lambda$.</td><td>Medium</td><td>When context window is limited and diverse information is needed.</td></tr>
+        <tr><td><strong>Random Sampling</strong></td><td>High – by construction.</td><td>Low – relevance not guaranteed.</td><td>Low</td><td>Exploratory analysis; rarely used in production RAG.</td></tr>
+        <tr><td><strong>Cluster‑based Diversity</strong></td><td>High – picks representatives from clusters.</td><td>Medium – depends on cluster quality.</td><td>High (requires clustering).</td><td>When large corpus and clear topic separation.</td></tr>
+        <tr><td><strong>Determinantal Point Processes (DPP)</strong></td><td>Very high – models quality and diversity jointly.</td><td>High – can incorporate relevance as quality.</td><td>High</td><td>Cutting‑edge; when exact diversity modelling is crucial.</td></tr>
+    </table>
+    <hr class="divider">
+
+    <!-- 9. ADVANTAGES & LIMITATIONS -->
+    <h2>9. Advantages & Limitations</h2>
+    <div class="two-col">
+        <div>
+            <h4>✅ Advantages</h4>
+            <ul>
+                <li>Simple, intuitive, and easy to implement.</li>
+                <li>Single parameter $\lambda$ provides a smooth trade‑off.</li>
+                <li>Effectively reduces redundancy and improves context coverage.</li>
+                <li>Works with any similarity metric and any embedding space.</li>
+                <li>Incremental (greedy) selection allows early stopping.</li>
+                <li>Interpretable: you can examine why a document was chosen or not.</li>
+            </ul>
+        </div>
+        <div>
+            <h4>❌ Limitations</h4>
+            <ul>
+                <li>Greedy selection is sub‑optimal; the global optimum of a set diversity function is not guaranteed.</li>
+                <li>Computationally expensive for large $k$ or $N$ due to pairwise similarity calculations.</li>
+                <li>Sensitive to the choice of similarity function; different metrics yield different selections.</li>
+                <li>May not handle cases where the relevant documents are naturally all similar (e.g., one topic with many facets) – diversity can hurt by excluding useful context.</li>
+                <li>Requires tuning $\lambda$ on a representative validation set; fixed $\lambda$ may not work for all queries.</li>
+            </ul>
+        </div>
+    </div>
+    <hr class="divider">
+
+    <!-- 10. PRACTICAL CONSIDERATIONS IN RAG -->
+    <h2>10. Practical Implementation Tips</h2>
+    <ul>
+        <li><strong>Pre‑compute document‑to‑document similarities</strong> if the candidate pool is small and static; this significantly speeds up the max‑penalty computation.</li>
+        <li><strong>Use a fast approximate similarity search</strong> (e.g., FAISS with inner product) to get the top‑$N$ candidates, then apply MMR as a post‑processing step.</li>
+        <li><strong>Normalise vectors</strong> to unit length so that cosine similarity and dot product coincide, simplifying the penalty term.</li>
+        <li><strong>Set $N$ generously</strong> (e.g., 5‑10 times $k$) to give MMR enough room to find diverse, relevant documents.</li>
+        <li><strong>Combine with a score threshold</strong> – first filter out documents below a relevance threshold, then apply MMR on the remainder. This prevents MMR from selecting marginally relevant but diverse documents.</li>
+        <li><strong>In LangChain:</strong> <code>vectorstore.max_marginal_relevance_search(query, k, fetch_k=N, lambda_mult=λ)</code> directly implements MMR using cosine similarity.</li>
+    </ul>
+    <hr class="divider">
+
+    <!-- 11. INTERVIEW QUESTIONS -->
+    <h2>11. Interview Questions</h2>
+    <div class="qa-block"><p class="q">Q1: What problem does MMR solve that simple top‑$k$ similarity search does not?</p><p class="a">A: Top‑$k$ may return multiple highly similar chunks (e.g., consecutive paragraphs). MMR reduces redundancy by selecting documents that are both relevant to the query and dissimilar to each other, providing broader context for the generator.</p></div>
+    <div class="qa-block"><p class="q">Q2: Write down the MMR formula and explain each term.</p><p class="a">A: $\text{MMR}(d) = \lambda \cdot \text{sim}_1(d,q) - (1-\lambda) \cdot \max_{d' \in S} \text{sim}_2(d,d')$. $\text{sim}_1(d,q)$ measures relevance to the query. $\text{sim}_2(d,d')$ measures redundancy against already‑selected document $d'$. The $\max$ penalises the worst redundancy. $\lambda$ balances the two.</p></div>
+    <div class="qa-block"><p class="q">Q3: How would you choose the value of $\lambda$ for a RAG system that answers factual questions from a knowledge base?</p><p class="a">A: Start with $\lambda=0.8$ to keep relevance dominant while removing exact duplicates. Evaluate the end‑to‑end answer accuracy and diversity of retrieved chunks. Adjust upwards if answers become incomplete (missing key facts), or downwards if the generator is overwhelmed by redundant information.</p></div>
+    <div class="qa-block"><p class="q">Q4: Explain the greedy selection algorithm of MMR. Why is it greedy, and what is its complexity?</p><p class="a">A: It iteratively picks the best document according to the MMR score, adding it to the selected set, and recomputes scores for remaining candidates. It is greedy because it makes a locally optimal choice at each step without considering the global combination. Complexity is $O(k \cdot N \cdot |S|)$ where $|S|$ grows to $k$, so $O(k^2 N)$.</p></div>
+    <div class="qa-block"><p class="q">Q5: Can MMR be applied without an initial similarity search? Why or why not?</p><p class="a">A: No. MMR is a re‑ranking algorithm that operates on a candidate pool. Applying it directly to millions of vectors would be computationally infeasible because it requires pairwise similarities. Always fetch a top‑$N$ candidate set first via ANN.</p></div>
+    <hr class="divider">
+
+    <!-- 12. COMMON MISTAKES -->
+    <h2>12. Common Mistakes</h2>
+    <table>
+        <tr><th>❌ Wrong Belief</th><th>✅ Correct Understanding</th></tr>
+        <tr><td>"MMR always improves retrieval performance."</td><td>If the relevant documents are naturally similar (e.g., multiple chunks from the same critical paragraph), MMR may drop important context, hurting accuracy. It must be evaluated on the task.</td></tr>
+        <tr><td>"Using $\lambda=0.5$ is always a safe balance."</td><td>The optimal $\lambda$ depends on the embedding model, the document set, and the query type. Blindly using 0.5 may sacrifice too much relevance.</td></tr>
+        <tr><td>"The max penalty only considers one previously selected document."</td><td>Yes, MMR uses the maximum similarity to any selected document, not an average. This makes it sensitive to a single highly redundant document – which is usually the intended behaviour.</td></tr>
+        <tr><td>"MMR can replace the initial retrieval step."</td><td>It is a post‑processing step; you still need an efficient ANN search to obtain the candidate pool.</td></tr>
+        <tr><td>"The same similarity metric must be used for both relevance and diversity."</td><td>While common, you could use different metrics (e.g., cosine for relevance, Euclidean for diversity) if it better captures the notion of redundancy in your domain.</td></tr>
+    </table>
+    <hr class="divider">
+
+    <!-- 13. EXAM CRAM FACTS -->
+    <h2>13. Exam Cram Facts (Day‑Before Revision)</h2>
+    <ol>
+        <li class="cram-bullet">MMR = Maximal Marginal Relevance – a greedy re‑ranking algorithm for diversity.</li>
+        <li class="cram-bullet">Core formula: $\text{MMR}(d) = \lambda \cdot \text{sim}(d,q) - (1-\lambda) \cdot \max_{d' \in S} \text{sim}(d,d')$.</li>
+        <li class="cram-bullet">$\lambda=1$: pure relevance. $\lambda=0$: pure diversity. Typical range: $0.5$–$0.8$.</li>
+        <li class="cram-bullet">Algorithm: start with top‑$N$ candidates, greedily pick $k$ documents maximising MMR.</li>
+        <li class="cram-bullet">Complexity: $O(k^2 N)$ similarity computations; efficient for small $k$.</li>
+        <li class="cram-bullet">Reduces redundancy in RAG context; improves information coverage.</li>
+        <li class="cram-bullet">Not a replacement for initial retrieval; requires a candidate pool.</li>
+        <li class="cram-bullet">Sensitive to $\lambda$ and similarity metric; requires tuning.</li>
+        <li class="cram-bullet">Variants: scaled MMR, soft MMR, adaptive $\lambda$, constraint‑based MMR.</li>
+        <li class="cram-bullet">Widely available in libraries: LangChain, LlamaIndex, custom implementations.</li>
+    </ol>
+    <hr class="divider">
+
+    <!-- 14. ULTRA FAST REVISION -->
+    <h2>14. Ultra‑Fast Revision (60 Seconds)</h2>
+    <div class="ultra-box">
+        <h3>⚡ MMR – 60‑Second Blitz</h3>
+        <div class="row"><strong>Purpose:</strong> Balance relevance and diversity to avoid redundant retrieved documents.</div>
+        <div class="row"><strong>Formula:</strong> $\text{score}(d) = \lambda \cdot \text{sim}(d,q) - (1-\lambda) \cdot \max_{d' \in S} \text{sim}(d,d')$.</div>
+        <div class="row"><strong>Algorithm:</strong> Greedily select $k$ docs from a top‑$N$ pool, maximising this score iteratively.</div>
+        <div class="row"><strong>Parameters:</strong> $\lambda$ (relevance weight), $N$ (candidate pool size), $k$ (final set size).</div>
+        <div class="row"><strong>Complexity:</strong> $O(k^2 N)$; use pre‑computed similarities for speed.</div>
+        <div class="row"><strong>When to use:</strong> RAG with limited context window, multi‑document QA, summarisation.</div>
+        <div class="row"><strong>Key pitfall:</strong> Over‑diversifying can drop crucial related chunks; tune $\lambda$ on validation.</div>
+        <div class="row"><strong>Golden rule:</strong> <strong>MMR turns a ranked list into a diverse set – keep what’s relevant, but skip what’s repetitive.</strong></div>
+    </div>
+    <hr class="divider">
+    <p style="text-align:center;font-size:8pt;margin-top:8px;font-weight:700;">— END OF MMR CHEAT SHEET —</p>
+</body>
+</html>

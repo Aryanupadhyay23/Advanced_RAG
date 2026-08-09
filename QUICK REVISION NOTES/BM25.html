@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BM25 – Okapi BM25 – High‑Density Cheat Sheet</title>
+    <script>
+        MathJax = { tex: { inlineMath: [['$', '$'], ['\\(', '\\)']] }, svg: { fontCache: 'global' } };
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js" async></script>
+    <style>
+        :root {
+            --bg: #ffffff;
+            --text: #000000;
+            --border: #000000;
+            --box-bg: #ffffff;
+            --rule: #000000;
+            --table-border: #000000;
+            --light-border: #cccccc;
+        }
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body {
+            background: var(--bg); color: var(--text);
+            font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+            font-size: 10pt; line-height: 1.45;
+            max-width: 210mm; margin: 0 auto;
+            padding: 8mm 10mm 12mm 10mm;
+            -webkit-print-color-adjust: exact; print-color-adjust: exact;
+        }
+        @media print {
+            body { padding:8mm 10mm 12mm 10mm; font-size:9pt; }
+            @page { size: A4; margin: 0; }
+            .page-break { page-break-before: always; }
+            .no-break { page-break-inside: avoid; }
+        }
+        @media screen and (max-width:600px) {
+            body { padding:4mm 5mm; font-size:8.5pt; }
+        }
+        h1 {
+            font-size: 22pt; font-weight:900; text-align:center; letter-spacing:1.5pt;
+            text-transform:uppercase; border:3px solid var(--border); padding:10px 16px;
+            margin-bottom:6px; line-height:1.2;
+        }
+        .subtitle { text-align:center; font-size:10pt; font-style:italic; margin-bottom:12px; border-bottom:2px solid var(--border); padding-bottom:6px; }
+        h2 { font-size:14pt; font-weight:900; text-transform:uppercase; border-bottom:2.5px solid var(--border); padding-bottom:3px; margin-top:18px; margin-bottom:8px; letter-spacing:0.8pt; }
+        h3 { font-size:11.5pt; font-weight:700; margin-top:12px; margin-bottom:6px; text-transform:uppercase; letter-spacing:0.4pt; border-left:4px solid var(--border); padding-left:8px; }
+        h4 { font-size:10pt; font-weight:700; margin-top:8px; margin-bottom:4px; }
+        p { margin-bottom:4px; }
+        ul { list-style-type:square; padding-left:18px; margin-bottom:6px; }
+        ul li { margin-bottom:2px; }
+        ul.compact li { margin-bottom:1px; line-height:1.3; }
+        .formula-box {
+            border:2px solid var(--border); padding:10px 14px; margin:10px auto;
+            text-align:center; font-size:12pt; font-weight:700;
+            font-family:"Courier New", Courier, monospace; letter-spacing:0.4pt;
+            background:#fafafa; max-width:95%; word-break:break-all;
+        }
+        .formula-box.small { font-size:10pt; padding:7px 10px; }
+        .var-meaning { font-size:9pt; margin-top:4px; text-align:left; font-family:"Helvetica Neue", Helvetica, Arial, sans-serif; font-weight:400; line-height:1.4; }
+        .interpretation { font-size:9pt; font-style:italic; margin-top:3px; text-align:left; font-weight:400; font-family:"Helvetica Neue", Helvetica, Arial, sans-serif; }
+        .interview-note { font-size:8.5pt; font-weight:700; margin-top:3px; text-align:left; font-family:"Helvetica Neue", Helvetica, Arial, sans-serif; text-transform:uppercase; letter-spacing:0.3pt; }
+        table { width:100%; border-collapse:collapse; margin:8px 0 10px 0; font-size:9pt; }
+        table th { background-color:#e8e8e8; border:1.5px solid var(--border); padding:6px 7px; text-align:left; font-weight:700; text-transform:uppercase; letter-spacing:0.3pt; font-size:8.5pt; }
+        table td { border:1px solid var(--light-border); padding:5px 7px; vertical-align:top; }
+        .compact-table td, .compact-table th { padding:3px 5px; font-size:8.5pt; }
+        .divider { border:none; border-top:2px solid var(--border); margin:14px 0; }
+        .divider-thin { border:none; border-top:1px solid var(--light-border); margin:8px 0; }
+        .two-col { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin:6px 0; }
+        @media screen and (max-width:600px) { .two-col { grid-template-columns:1fr; } }
+        .highlight-box { border:2px dashed var(--border); padding:8px 12px; margin:8px 0; background:#fdfdfd; }
+        .flow-arrow { text-align:center; font-weight:900; font-size:10pt; margin:2px 0; letter-spacing:1pt; }
+        .qa-block { margin:6px 0; padding-left:8px; border-left:3px solid var(--border); }
+        .qa-block .q { font-weight:700; font-size:10pt; }
+        .qa-block .a { font-size:9.5pt; margin-left:4px; }
+        .cram-bullet { font-size:9pt; margin-bottom:2px; line-height:1.35; }
+        .ultra-box { border:3px solid var(--border); padding:10px 14px; margin:12px 0; background:#fafafa; }
+        .ultra-box h3 { border-left:none; text-align:center; font-size:13pt; margin-top:0; padding-left:0; }
+        .ultra-box .row { display:flex; flex-wrap:wrap; gap:4px 12px; margin:3px 0; font-size:9.5pt; }
+        .ultra-box .row strong { min-width:130px; display:inline-block; font-size:9pt; text-transform:uppercase; letter-spacing:0.3pt; }
+    </style>
+</head>
+<body>
+
+    <h1>BM25</h1>
+    <p class="subtitle">Best Match 25 – the classic probabilistic bag‑of‑words retrieval function, balancing term frequency, inverse document frequency, and document length normalization.</p>
+
+    <!-- 1. CORE IDEA -->
+    <h2>1. Core Idea</h2>
+    <ul>
+        <li><strong>What is BM25?</strong> A ranking function that estimates the relevance of documents to a given query based on exact keyword matching. It is the de‑facto standard for sparse lexical retrieval (full‑text search), used in Lucene, Elasticsearch, and hybrid RAG systems.</li>
+        <li><strong>Why does it exist?</strong> Early TF‑IDF methods over‑emphasised rare terms and long documents. BM25 introduces <em>term frequency saturation</em> (diminishing returns for repeated terms) and tunable <em>document length normalization</em>, providing a more robust relevance score.</li>
+        <li><strong>Core principle:</strong> Each query term contributes a weight equal to its IDF (inverse document frequency) multiplied by a dampened term frequency factor. The scores are summed across all query terms.</li>
+        <li><strong>Key advantage over embeddings:</strong> Exact lexical matching; no need for training; completely transparent; works out‑of‑the‑box without an embedding model.</li>
+    </ul>
+    <hr class="divider">
+
+    <!-- 2. MENTAL MODEL -->
+    <h2>2. Mental Model</h2>
+    <div class="two-col">
+        <div>
+            <h4>🔹 The “Librarian’s Card Catalog”</h4>
+            <p>BM25 is like a librarian who, given a list of words, looks them up in a card catalog. Rare words (like “hippopotamus”) are very informative and get high weight; common words (like “the”) are ignored. The librarian also compensates for book thickness – a 200‑page book that mentions a word once is more relevant than an 800‑page book mentioning it once.</p>
+        </div>
+        <div>
+            <h4>🔹 The “Saturation Curve”</h4>
+            <p>Repeating a keyword helps, but only up to a point. Saying “cat” 100 times doesn’t make a document 100× more relevant about cats than saying it 5 times. BM25’s TF component saturates – after a few occurrences, extra mentions add little extra score.</p>
+        </div>
+    </div>
+    <hr class="divider">
+
+    <!-- 3. KEY CONCEPTS -->
+    <h2>3. Key Concepts</h2>
+    <table>
+        <tr><th style="width:18%;">Concept</th><th style="width:35%;">Meaning</th><th style="width:22%;">Importance</th><th style="width:25%;">Interview Insight</th></tr>
+        <tr>
+            <td><strong>Term Frequency (TF)</strong></td>
+            <td>How many times a query term appears in a document. In BM25, it’s not linear – it saturates: $ \frac{f \cdot (k_1+1)}{f + k_1 \cdot (1 - b + b \cdot \frac{|d|}{\text{avgdl}})} $.</td>
+            <td>Captures the intuition that more mentions mean higher relevance, but with diminishing returns.</td>
+            <td>“Why saturate? Because after 3‑4 mentions, the document is already about the topic; more mentions shouldn't double the score.”</td>
+        </tr>
+        <tr>
+            <td><strong>Inverse Document Frequency (IDF)</strong></td>
+            <td>Measures how rare a term is across the entire collection: $ \text{IDF}(t) = \log\left( \frac{N - n(t) + 0.5}{n(t) + 0.5} + 1 \right) $, where $N$ is total docs, $n(t)$ is number of docs containing $t$.</td>
+            <td>Gives high weight to discriminative terms and low weight to stop words.</td>
+            <td>“The Robertson‑Spärck Jones IDF is a smoothed version that avoids division by zero and negative values.”</td>
+        </tr>
+        <tr>
+            <td><strong>Document Length Normalization</strong></td>
+            <td>Adjusts TF based on document length relative to the average length ($\text{avgdl}$). Controlled by parameter $b$. Short documents with a term are favoured over long documents with the same TF.</td>
+            <td>Prevents long documents from dominating simply because they contain more words.</td>
+            <td>“Parameter $b$ controls how much length matters: $b=1$ full normalization, $b=0$ no normalization.”</td>
+        </tr>
+        <tr>
+            <td><strong>Parameters $k_1$ and $b$</strong></td>
+            <td>$k_1$: controls TF saturation rate (typical 1.2–2.0). $b$: controls document length normalization strength (typical 0.75).</td>
+            <td>Make BM25 tunable to specific collections; no training required, just heuristics.</td>
+            <td>“$k_1=1.2$ is a common default; $b=0.75$ works well for most text. For very short or very long documents, tweak $b$.”</td>
+        </tr>
+    </table>
+    <hr class="divider">
+
+    <!-- 4. FORMULA SHEET -->
+    <h2>4. Formula Sheet</h2>
+
+    <h3>4.1 BM25 Score for a Query $q$ and Document $d$</h3>
+    <div class="formula-box">
+        $ \text{BM25}(q, d) = \sum_{t \in q} \text{IDF}(t) \cdot \frac{ f(t,d) \cdot (k_1 + 1) }{ f(t,d) + k_1 \cdot \left(1 - b + b \cdot \frac{|d|}{\text{avgdl}} \right) } $
+    </div>
+    <p class="var-meaning"><strong>$t$</strong>: a term (word) in the query. <strong>$f(t,d)$</strong>: frequency of term $t$ in document $d$. <strong>$|d|$</strong>: length of document $d$ (number of terms). <strong>$\text{avgdl}$</strong>: average document length in the collection. <strong>$k_1$</strong>: TF saturation parameter. <strong>$b$</strong>: length normalization parameter.</p>
+
+    <h3>4.2 IDF (Robertson‑Spärck Jones)</h3>
+    <div class="formula-box small">
+        $ \text{IDF}(t) = \log \left( \frac{ N - n(t) + 0.5 }{ n(t) + 0.5 } + 1 \right) $
+    </div>
+    <p class="var-meaning"><strong>$N$</strong>: total number of documents in the collection. <strong>$n(t)$</strong>: number of documents containing term $t$. The +0.5 and +1 provide smoothing.</p>
+
+    <h3>4.3 Interpretation of the TF Component</h3>
+    <div class="formula-box small">
+        When $f(t,d) \ll k_1 \cdot (\ldots)$: score grows almost linearly with $f$.<br>
+        When $f(t,d) \gg k_1 \cdot (\ldots)$: score approaches $k_1+1$ asymptotically – saturation.
+    </div>
+
+    <h3>4.4 Default Parameters</h3>
+    <div class="formula-box small">
+        $k_1 = 1.2 \quad\text{(range 1.2–2.0)}$<br>
+        $b = 0.75 \quad\text{(range 0–1)}$
+    </div>
+    <p class="var-meaning">These values are widely used in Lucene/Elasticsearch and most BM25 implementations.</p>
+    <hr class="divider">
+
+    <!-- 5. HOW BM25 WORKS (STEP‑BY‑STEP) -->
+    <h2>5. Retrieval Workflow with BM25</h2>
+    <div class="no-break">
+        <div class="flow-arrow">1. INDEXING: For each document in the collection, build an inverted index mapping each term to its document IDs and term frequencies. Compute document lengths and average document length.</div>
+        <div class="flow-arrow">2. QUERY PROCESSING: Tokenize the query; optionally remove stop words or apply stemming (depending on implementation).</div>
+        <div class="flow-arrow">3. FOR EACH QUERY TERM $t$:</div>
+        <div class="flow-arrow">&nbsp;&nbsp; a. Look up $t$ in the inverted index to get all documents containing $t$ and their term frequencies.</div>
+        <div class="flow-arrow">&nbsp;&nbsp; b. Compute $\text{IDF}(t)$ using the collection statistics.</div>
+        <div class="flow-arrow">&nbsp;&nbsp; c. For each document $d$ containing $t$, compute the BM25 term contribution.</div>
+        <div class="flow-arrow">4. AGGREGATE: For each candidate document, sum the contributions from all query terms that appear in it.</div>
+        <div class="flow-arrow">5. RANK: Sort documents by total BM25 score in descending order; return top‑$k$.</div>
+    </div>
+    <p style="text-align:center;font-size:8.5pt;margin-top:4px;"><strong>Complexity:</strong> Linear in the number of documents containing at least one query term. Highly efficient with an inverted index; can scale to billions of documents.</p>
+    <hr class="divider">
+
+    <!-- 6. PARAMETERS & TUNING -->
+    <h2>6. Hyperparameters & Tuning</h2>
+    <table>
+        <tr><th>Parameter</th><th>Meaning</th><th>Typical Value</th><th>Effect of Increase</th></tr>
+        <tr><td><strong>$k_1$</strong></td><td>Controls the shape of TF saturation. Lower $k_1$ makes the saturation stronger (additional occurrences add less).</td><td>1.2 – 2.0 (default 1.2)</td><td>Higher $k_1$ → linear TF behaviour for longer; frequent terms get higher weight.</td></tr>
+        <tr><td><strong>$b$</strong></td><td>Controls document length normalization. $b=0$: no length penalty; $b=1$: full proportional penalty.</td><td>0.75</td><td>Higher $b$ → short documents are favoured more strongly over long documents.</td></tr>
+    </table>
+    <p class="var-meaning">Tuning is typically done by evaluating on a validation set with a relevance metric (e.g., NDCG, Recall@k). In practice, defaults work well for most general‑purpose collections.</p>
+    <hr class="divider">
+
+    <!-- 7. VARIANTS -->
+    <h2>7. BM25 Variants</h2>
+    <ul>
+        <li><strong>BM25F:</strong> Extension for structured documents with multiple fields (title, body, abstract). Each field has its own length and a weight; term frequencies are combined across fields.</li>
+        <li><strong>BM25+:</strong> Adds a small constant to the TF component to avoid the zero‑score problem for terms that appear in very few documents.</li>
+        <li><strong>BM25L:</strong> Adjusts the length normalization to be asymmetric for very short and very long documents.</li>
+        <li><strong>Lucene’s Practical BM25:</strong> Uses a slightly modified IDF formula and term‑level boosts; the basis for Elasticsearch’s default similarity.</li>
+    </ul>
+    <hr class="divider">
+
+    <!-- 8. BM25 IN RAG & HYBRID SEARCH -->
+    <h2>8. BM25 in RAG & Hybrid Search</h2>
+    <ul>
+        <li><strong>Sparse retriever:</strong> BM25 retrieves documents based on exact keyword matches, complementing dense embeddings which capture semantic similarity.</li>
+        <li><strong>Hybrid search:</strong> Combine BM25 scores with vector similarity scores (e.g., via reciprocal rank fusion or linear combination). This captures both lexical and semantic relevance.</li>
+        <li><strong>When BM25 shines:</strong> Queries containing rare, specific terms (e.g., error codes, technical jargon, entity names) where dense models may fail to retrieve the exact match.</li>
+        <li><strong>When dense retrieval shines:</strong> Paraphrasing, synonyms, concept‑based queries. Hybrid approaches combine both strengths.</li>
+        <li><strong>Implementation:</strong> Libraries like <code>rank_bm25</code> (Python), Elasticsearch’s built‑in BM25, or Weaviate’s hybrid search parameter.</li>
+    </ul>
+    <hr class="divider">
+
+    <!-- 9. ADVANTAGES & LIMITATIONS -->
+    <h2>9. Advantages & Limitations</h2>
+    <div class="two-col">
+        <div>
+            <h4>✅ Advantages</h4>
+            <ul>
+                <li>Fast, interpretable, and needs no training – just indexing.</li>
+                <li>Excellent for exact keyword matching; handles rare terms well.</li>
+                <li>Robust across domains without fine‑tuning.</li>
+                <li>Lightweight; runs efficiently even on CPU with an inverted index.</li>
+                <li>Easy to combine with dense retrieval for hybrid systems.</li>
+                <li>Well‑understood theoretical foundations in probabilistic information retrieval.</li>
+            </ul>
+        </div>
+        <div>
+            <h4>❌ Limitations</h4>
+            <ul>
+                <li>No semantic understanding; misses synonyms and paraphrases (the “vocabulary mismatch” problem).</li>
+                <li>Treats documents as bags‑of‑words; ignores word order and proximity.</li>
+                <li>Cannot handle multi‑word concepts or cross‑referencing between terms.</li>
+                <li>Performance degrades for very short queries (few discriminative terms).</li>
+                <li>Sensitive to tokenization and language‑specific preprocessing.</li>
+                <li>Document length normalization can overly penalise long but highly relevant documents.</li>
+            </ul>
+        </div>
+    </div>
+    <hr class="divider">
+
+    <!-- 10. INTERVIEW QUESTIONS -->
+    <h2>10. Interview Questions</h2>
+    <div class="qa-block"><p class="q">Q1: Explain the BM25 scoring formula. What do the parameters $k_1$ and $b$ control?</p><p class="a">A: $\text{BM25}(q,d) = \sum_{t \in q} \text{IDF}(t) \cdot \frac{f \cdot (k_1+1)}{f + k_1(1-b + b \cdot |d|/\text{avgdl})}$. $k_1$ controls how quickly term frequency saturates; $b$ controls how much document length is penalised (0 = no penalty, 1 = full normalization).</p></div>
+    <div class="qa-block"><p class="q">Q2: How does BM25 handle term frequency differently from classic TF‑IDF?</p><p class="a">A: Classic TF‑IDF uses raw or log‑normalized term frequency without saturation; an additional occurrence always increases the score. BM25 saturates TF, so after a few occurrences extra mentions add little weight. This prevents term‑stuffing from boosting documents artificially.</p></div>
+    <div class="qa-block"><p class="q">Q3: Why is BM25 often used alongside dense embeddings in a hybrid RAG system?</p><p class="a">A: Dense embeddings excel at semantic understanding but may miss exact keyword matches (e.g., product codes, rare technical terms). BM25 guarantees that if the exact word appears, it will be found. The combination ensures both recall and precision.</p></div>
+    <div class="qa-block"><p class="q">Q4: How would you tune BM25 for a domain with very long documents (e.g., legal contracts)?</p><p class="a">A: Increase $b$ to more heavily penalise length, preventing long documents from dominating. Possibly also increase $k_1$ to allow longer documents to benefit from repeated important terms. Evaluate on domain‑specific relevance judgments.</p></div>
+    <div class="qa-block"><p class="q">Q5: What are the limitations of BM25, and how do modern dense retrievers address them?</p><p class="a">A: BM25 suffers from vocabulary mismatch – it cannot match synonyms or paraphrases. Dense retrievers embed queries and documents into a semantic space where similar meanings are close, overcoming this limitation. However, dense retrievers require training data and are less interpretable.</p></div>
+    <hr class="divider">
+
+    <!-- 11. COMMON MISTAKES -->
+    <h2>11. Common Mistakes</h2>
+    <table>
+        <tr><th>❌ Wrong Belief</th><th>✅ Correct Understanding</th></tr>
+        <tr><td>"BM25 is just TF‑IDF with different constants."</td><td>It introduces TF saturation and length normalization, making a significant practical difference. Without saturation, a word appearing 100 times would give 100× the score, which is unrealistic.</td></tr>
+        <tr><td>"$k_1=0$ means TF is ignored."</td><td>$k_1=0$ gives a constant score for any non‑zero TF (the fraction becomes 1), not zero. Setting $k_1$ very small heavily dampens TF but still rewards presence.</td></tr>
+        <tr><td>"BM25 requires IDF training."</td><td>IDF is computed directly from collection statistics; no iterative training needed. It is a ranking function, not a machine learning model.</td></tr>
+        <tr><td>"BM25 only works for English."</td><td>BM25 is language‑agnostic as long as there is a tokenizer for that language. It relies on term statistics, not linguistic features.</td></tr>
+        <tr><td>"BM25 cannot be used with large $k$ for hybrid search."</td><td>It scales well; with an inverted index, retrieving top‑1000 BM25 candidates is fast. It's commonly used as the first stage in a multi‑stage retrieval pipeline.</td></tr>
+    </table>
+    <hr class="divider">
+
+    <!-- 12. EXAM CRAM FACTS -->
+    <h2>12. Exam Cram Facts (Day‑Before Revision)</h2>
+    <ol>
+        <li class="cram-bullet">BM25 (Best Match 25) is a probabilistic bag‑of‑words ranking function; the standard for lexical search.</li>
+        <li class="cram-bullet">Score = sum over query terms of $\text{IDF}(t) \cdot \frac{f(t,d)(k_1+1)}{f(t,d) + k_1(1 - b + b \cdot |d|/\text{avgdl})}$.</li>
+        <li class="cram-bullet">IDF formula: $\log\left( \frac{N - n(t) + 0.5}{n(t) + 0.5} + 1 \right)$ – smoothed to avoid zero and negative.</li>
+        <li class="cram-bullet">Parameters: $k_1$ (TF saturation, typical 1.2), $b$ (length normalization, typical 0.75).</li>
+        <li class="cram-bullet">TF component saturates: score approaches $k_1+1$ as $f$ grows.</li>
+        <li class="cram-bullet">No training required; uses inverted index for fast retrieval.</li>
+        <li class="cram-bullet">Key advantage: exact keyword matching; robust, transparent, efficient.</li>
+        <li class="cram-bullet">Key limitation: vocabulary mismatch; no semantic understanding.</li>
+        <li class="cram-bullet">Hybrid RAG: BM25 (sparse) + dense embeddings (dense) → captures both lexical and semantic relevance.</li>
+        <li class="cram-bullet">Variants: BM25F (multi‑field), BM25+ (small constant fix), BM25L (alternative length norm).</li>
+    </ol>
+    <hr class="divider">
+
+    <!-- 13. ULTRA FAST REVISION -->
+    <h2>13. Ultra‑Fast Revision (60 Seconds)</h2>
+    <div class="ultra-box">
+        <h3>⚡ BM25 – 60‑Second Blitz</h3>
+        <div class="row"><strong>Definition:</strong> Bag‑of‑words retrieval function using saturated TF, IDF, and length normalization.</div>
+        <div class="row"><strong>Formula:</strong> $\sum_{t \in q} \text{IDF}(t) \cdot \frac{f \cdot (k_1+1)}{f + k_1(1-b + b \cdot |d|/\text{avgdl})}$.</div>
+        <div class="row"><strong>IDF:</strong> $\log\left( \frac{N - n(t) + 0.5}{n(t) + 0.5} + 1 \right)$ – rare terms get high weight.</div>
+        <div class="row"><strong>Parameters:</strong> $k_1=1.2$ (TF saturation), $b=0.75$ (length norm).</div>
+        <div class="row"><strong>Key behaviour:</strong> Extra TF adds less after a few occurrences; short docs favoured over long docs.</div>
+        <div class="row"><strong>Use in RAG:</strong> Sparse retriever; combine with dense for hybrid search.</div>
+        <div class="row"><strong>Pros:</strong> Fast, no training, exact match, interpretable.</div>
+        <div class="row"><strong>Cons:</strong> No semantics, vocabulary mismatch, bag‑of‑words.</div>
+        <div class="row"><strong>Golden rule:</strong> <strong>BM25 gets you exactly the keywords you ask for; embeddings get you the meaning. Hybrid gets you both.</strong></div>
+    </div>
+    <hr class="divider">
+    <p style="text-align:center;font-size:8pt;margin-top:8px;font-weight:700;">— END OF BM25 CHEAT SHEET —</p>
+</body>
+</html>
