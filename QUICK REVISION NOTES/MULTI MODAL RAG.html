@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Multimodal RAG — Complete Revision Cheat Sheet</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.min.js"></script>
+<style>
+  @page { size: A4; margin: 14mm 12mm; }
+  * { box-sizing: border-box; }
+  body {
+    font-family: 'Georgia', 'Times New Roman', serif;
+    color: #000;
+    background: #fff;
+    line-height: 1.32;
+    font-size: 11.3px;
+    margin: 0;
+    padding: 0;
+  }
+  .page {
+    page-break-after: always;
+    padding: 4px 2px;
+    min-height: 265mm;
+  }
+  .page:last-child { page-break-after: auto; }
+
+  h1.title {
+    text-align: center;
+    font-size: 22px;
+    letter-spacing: 1.5px;
+    border-bottom: 3px solid #000;
+    padding-bottom: 6px;
+    margin-bottom: 2px;
+    text-transform: uppercase;
+  }
+  .subtitle { text-align:center; font-size:11px; font-style:italic; margin-bottom:10px; }
+
+  h2 {
+    font-size: 14px;
+    text-transform: uppercase;
+    border-bottom: 2px solid #000;
+    padding-bottom: 3px;
+    margin: 14px 0 6px 0;
+    letter-spacing: 0.5px;
+  }
+  h3 {
+    font-size: 12.3px;
+    text-transform: none;
+    border-left: 4px solid #000;
+    padding-left: 6px;
+    margin: 10px 0 4px 0;
+    font-weight: bold;
+  }
+  p { margin: 3px 0; text-align: justify; }
+  ul, ol { margin: 3px 0 6px 16px; padding: 0; }
+  li { margin-bottom: 2px; }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 6px 0 10px 0;
+    font-size: 10.6px;
+  }
+  th, td {
+    border: 1px solid #000;
+    padding: 3.5px 5px;
+    text-align: left;
+    vertical-align: top;
+  }
+  th { background: #e8e8e8; font-weight: bold; text-transform: uppercase; font-size: 10px; }
+  tr:nth-child(even) td { background: #f5f5f5; }
+
+  .formula-box {
+    border: 1.5px solid #000;
+    background: #f0f0f0;
+    padding: 8px 10px;
+    margin: 8px 0;
+    text-align: center;
+    font-size: 13px;
+  }
+  .formula-box .label { font-size: 10px; text-transform:uppercase; font-weight:bold; text-align:left; margin-bottom:3px; letter-spacing:0.5px; }
+  .var-key { font-size: 10px; text-align:left; margin-top:5px; border-top:1px dashed #000; padding-top:4px; }
+
+  .callout {
+    border: 1px solid #000;
+    padding: 6px 8px;
+    margin: 6px 0;
+    font-size: 10.5px;
+    background: #fafafa;
+  }
+  .callout .htag { font-weight:bold; text-transform:uppercase; font-size:9.5px; letter-spacing:0.5px; }
+
+  .two-col { display: flex; gap: 10px; }
+  .two-col > div { flex: 1; }
+
+  .mnemonic { font-style: italic; border: 1px dashed #000; padding: 4px 6px; margin: 5px 0; font-size: 10.3px; }
+
+  .footer-tag {
+    text-align:center; font-size:9px; border-top:1px solid #000; margin-top:10px; padding-top:3px;
+  }
+
+  .flow {
+    display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap;
+    border:1px solid #000; padding:8px; margin:6px 0; font-size:10.5px; text-align:center;
+  }
+  .flow .step { border:1px solid #000; padding:5px 8px; background:#eee; flex:1; margin:2px; min-width:90px; }
+  .flow .arrow { font-size:16px; padding:0 4px; }
+</style>
+</head>
+<body>
+
+<!-- ================= PAGE 1 ================= -->
+<div class="page">
+  <h1 class="title">Multimodal RAG</h1>
+  <p class="subtitle">Unstructured Loaders, Embedding Strategies, the Representation &amp; Retrieval Problem, and CLIP — Complete Revision Sheet</p>
+
+  <h2>1. What is Multimodal RAG?</h2>
+  <p><b>Multimodal RAG</b> extends standard text-only RAG so the knowledge base can contain <b>mixed content types</b> — text, tables, and images (charts, diagrams, scanned pages, photos) — and the pipeline can retrieve and reason across all of them to answer a user's query.</p>
+  <ul>
+    <li><b>Why it exists:</b> Real-world documents (PDFs, slide decks, manuals) are rarely pure text — they contain figures, tables, and screenshots that carry critical information a text-only RAG would silently ignore.</li>
+    <li><b>Core challenge:</b> Text embeddings are built for language; images are pixels, not tokens — so the pipeline needs new components to load, represent, and retrieve non-text content.</li>
+  </ul>
+
+  <h2>2. Unstructured Document Loader</h2>
+  <p>Before any embedding happens, raw files (PDF, PPTX, DOCX, HTML, scanned images) must be <b>parsed and decomposed</b> into distinct content elements. This is the job of an <b>unstructured document loader</b> (e.g., the <code>unstructured</code> library, LlamaParse, Azure Doc Intelligence).</p>
+  <ul>
+    <li><b>What it does:</b> Walks through a document and classifies/extracts each region into typed elements — <code>Title</code>, <code>NarrativeText</code>, <code>Table</code>, <code>Image</code>, <code>FigureCaption</code>, <code>ListItem</code>, etc.</li>
+    <li><b>Why "unstructured":</b> Source documents have no fixed schema — the loader must infer structure (layout detection, OCR, table detection) rather than parse a known format.</li>
+    <li><b>Output:</b> A list of elements, each tagged with its type, page number, bounding box coordinates, and raw content (text string OR extracted image bytes/path).</li>
+  </ul>
+
+  <h3>Step-by-Step: Loading a Mixed PDF</h3>
+  <ol>
+    <li><b>Layout Detection:</b> A vision-based layout model (e.g., Detectron2-based) segments each page into regions: text blocks, tables, figures/images.</li>
+    <li><b>Text Extraction:</b> For text regions, extract raw text directly (or OCR if scanned) → produces text chunks.</li>
+    <li><b>Table Extraction:</b> Tables are extracted preserving row/column structure (often converted to HTML/Markdown for LLM readability).</li>
+    <li><b>Image Extraction:</b> Figures/images/charts are cropped out and saved as separate image files, linked back to their page + surrounding text (captions, nearby paragraphs) for context.</li>
+    <li><b>Chunking:</b> Text elements are grouped into RAG-sized chunks; each image is kept as its own retrievable unit (often paired with its caption/context text).</li>
+  </ol>
+
+  <div class="flow">
+    <div class="step">Raw PDF/DOCX</div><div class="arrow">→</div>
+    <div class="step">Layout Detection</div><div class="arrow">→</div>
+    <div class="step">Typed Elements (Text/Table/Image)</div><div class="arrow">→</div>
+    <div class="step">Chunking + Image Extraction</div><div class="arrow">→</div>
+    <div class="step">Ready for Embedding</div>
+  </div>
+
+  <div class="mnemonic">🧠 Memory Hook: Unstructured loader = "document surgeon" — cuts a messy PDF into clean, labeled organs (text, tables, images) instead of leaving it as one undifferentiated blob.</div>
+
+  <div class="callout"><span class="htag">Interview Insight:</span> A naive text-only loader (e.g., simple PDF-to-text) silently drops all images/charts — this is the single most common source of "missing information" bugs in RAG systems over technical/financial documents.</div>
+
+  <div class="footer-tag">Multimodal RAG Cheat Sheet — Page 1 of 5 — Foundations &amp; Document Loading</div>
+</div>
+
+
+<!-- ================= PAGE 2 ================= -->
+<div class="page">
+  <h2>3. Embedding Models in Multimodal RAG</h2>
+  <p>In text-only RAG, one embedding model turns every chunk into a vector in a shared space, so cosine similarity between the query vector and a chunk vector = relevance. In <b>multimodal RAG</b>, this breaks down the moment images enter the knowledge base — text embedding models have no concept of pixels.</p>
+
+  <h3>Why Standard Text Embeddings Fail on Images</h3>
+  <ul>
+    <li>A text embedding model (e.g., OpenAI <code>text-embedding-3</code>, BGE, E5) is trained ONLY on token sequences — it has no input pathway for raw pixel data.</li>
+    <li>You cannot cosine-similarity-compare a text query vector against an image unless the image is somehow projected into the <b>same vector space</b> as the text.</li>
+    <li>This gap is exactly what creates the two central problems of multimodal RAG (detailed on Page 3).</li>
+  </ul>
+
+  <h2>4. The Two Core Problems of Multimodal RAG</h2>
+  <p>Once a loader extracts images from a document, two distinct, sequential problems must be solved before an image can ever be used to answer a query:</p>
+
+  <table>
+    <tr><th>#</th><th>Problem</th><th>Question it Asks</th></tr>
+    <tr><td>1</td><td><b>Representational Problem</b></td><td>How do we turn an image into an embedding (a vector) at all?</td></tr>
+    <tr><td>2</td><td><b>Retrieval Problem</b></td><td>Once we have that embedding, how do we similarity-search it against a text query — and once retrieved, how do we actually get the image (or its information) into the LLM's context to generate an answer?</td></tr>
+  </table>
+
+  <div class="mnemonic">🧠 Memory Hook: "Represent, then Retrieve" — Problem 1 is about CREATING the vector; Problem 2 is about USING that vector (searching it + feeding the underlying content to the LLM).</div>
+
+  <h3>Problem 1 — Representational Problem (Detail)</h3>
+  <ul>
+    <li>An image is a grid of pixel values (H × W × 3 channels) — fundamentally different data type from a token sequence.</li>
+    <li>We need a function <b>f(image) → vector ∈ ℝᵈ</b> such that semantically similar images/concepts land close together in vector space.</li>
+    <li>Ideally, this vector space should ALSO be comparable to text vectors, so a text query like "a red sports car" can match an image of a red sports car.</li>
+  </ul>
+
+  <h3>Problem 2 — Retrieval Problem (Detail)</h3>
+  <ul>
+    <li>Even with image embeddings computed, you must decide: search text query against image vectors directly? Or convert everything to one modality first?</li>
+    <li><b>Context-injection sub-problem:</b> After the correct image is retrieved (its vector matched the query), the raw image itself must somehow reach the LLM so it can actually "see" it and use it to generate the answer — this requires either (a) passing the raw image to a vision-capable LLM at generation time, or (b) having already converted the image to a textual description that gets inserted into the prompt like normal text context.</li>
+    <li>This is why multimodal RAG pipelines need a clear strategy for BOTH embedding AND final context delivery — solving Problem 1 alone is not enough.</li>
+  </ul>
+
+  <div class="callout"><span class="htag">Interview Trap:</span> Students often think "embed the image" solves multimodal RAG. It only solves retrieval matching (Problem 2's search step) — you still need a separate mechanism to get the actual visual information into the LLM's context window at generation time.</div>
+
+  <div class="footer-tag">Multimodal RAG Cheat Sheet — Page 2 of 5 — Embeddings &amp; The Two Core Problems</div>
+</div>
+
+
+<!-- ================= PAGE 3 ================= -->
+<div class="page">
+  <h2>5. Solving the Two Problems — Two Strategies</h2>
+
+  <h3>Strategy 1: Vision-Capable LLM → Caption → Text Embed</h3>
+  <p><b>Idea:</b> Don't embed the image directly at all — use a vision-capable LLM (e.g., GPT-4V, Claude, Gemini) to <b>describe</b> the image in detailed natural language, then embed that description using an ordinary <b>text</b> embedding model, alongside the rest of the text chunks.</p>
+  <ol>
+    <li><b>Extract image</b> from the document (via unstructured loader).</li>
+    <li><b>Caption it:</b> Feed the image to a vision LLM with a prompt like "Describe this image/chart/diagram in detail, including any text, labels, numbers, and trends visible."</li>
+    <li><b>Generate detailed text description</b> — this becomes a proxy document for the image.</li>
+    <li><b>Embed the description</b> using the SAME text embedding model used for the rest of the corpus → now it lives in the same vector space as all text chunks.</li>
+    <li><b>Store:</b> Save {description embedding vector, original image reference} so that at retrieval time, if the description matches the query, you can pull up either the description text OR the original raw image to inject into the LLM's context.</li>
+  </ol>
+  <table>
+    <tr><th>Pros</th><th>Cons</th></tr>
+    <tr><td>Simple — reuses existing text embedding + text RAG infra unchanged</td><td>Lossy — captioning compresses/loses visual detail (exact chart values, fine layout, subtle visual cues)</td></tr>
+    <tr><td>Works with ANY text embedding model, no special training needed</td><td>Extra LLM call per image = slower indexing, added cost</td></tr>
+    <tr><td>Retrieval quality benefits from mature text embedding models</td><td>Quality bottlenecked by captioning LLM's descriptive accuracy/detail</td></tr>
+  </table>
+
+  <h3>Strategy 2: Multimodal Embedding Model (Direct Image Embedding)</h3>
+  <p><b>Idea:</b> Use a single embedding model trained to accept BOTH text and images as input and project both into one <b>shared/joint vector space</b> — generate the image's embedding vector <i>directly</i> from pixels, no captioning step required. <b>CLIP</b> is the canonical example.</p>
+  <ol>
+    <li><b>Extract image</b> from the document (via unstructured loader).</li>
+    <li><b>Feed the raw image directly</b> into the multimodal embedding model's image encoder → outputs a vector in the shared embedding space.</li>
+    <li><b>Text queries</b> are fed into the SAME model's text encoder → also outputs a vector in that SAME shared space.</li>
+    <li><b>Similarity search:</b> Because both vectors live in the same space, cosine similarity between a text query vector and an image vector is directly meaningful — no intermediate text conversion needed.</li>
+    <li><b>Context delivery:</b> Once the right image is retrieved, either pass the raw image to a vision-capable LLM at generation time, or (optionally) generate a caption at that point (only for the retrieved image, not the whole corpus) to inject as text.</li>
+  </ol>
+  <table>
+    <tr><th>Pros</th><th>Cons</th></tr>
+    <tr><td>No information loss at indexing time — raw visual signal is embedded directly</td><td>Requires a specialized multimodal embedding model (CLIP, SigLIP, etc.)</td></tr>
+    <tr><td>Single encoder pass per image — often faster/cheaper than an LLM captioning call</td><td>Joint embedding spaces can be less precise for fine-grained text-heavy content (e.g., dense tables) vs a dedicated text model</td></tr>
+    <tr><td>Enables true cross-modal search (image-to-image, text-to-image, image-to-text)</td><td>Still need a separate step to get the actual image INTO the LLM's context at generation time</td></tr>
+  </table>
+
+  <h2>6. Strategy Comparison at a Glance</h2>
+  <table>
+    <tr><th>Aspect</th><th>Strategy 1 (Caption + Text Embed)</th><th>Strategy 2 (Multimodal Embedding / CLIP)</th></tr>
+    <tr><td>Embedding space</td><td>Text-only (image → text → text vector)</td><td>Joint text-image space (native)</td></tr>
+    <tr><td>Indexing cost</td><td>Higher (LLM call per image)</td><td>Lower (single encoder forward pass)</td></tr>
+    <tr><td>Information fidelity</td><td>Lossy — bounded by caption quality</td><td>High — raw visual features preserved</td></tr>
+    <tr><td>Infra complexity</td><td>Low — reuses existing text pipeline</td><td>Higher — needs multimodal model + vector store supporting it</td></tr>
+    <tr><td>Best for</td><td>Documents where visual content is simple/describable (basic charts, photos)</td><td>Documents where fine visual detail or true visual search matters (product images, diagrams)</td></tr>
+  </table>
+
+  <div class="mnemonic">🧠 Memory Hook: Strategy 1 = "Describe then Search" (image→words→vector). Strategy 2 = "See then Search" (image→vector directly, CLIP-style).</div>
+
+  <div class="footer-tag">Multimodal RAG Cheat Sheet — Page 3 of 5 — Two Solution Strategies</div>
+</div>
+
+
+<!-- ================= PAGE 4 ================= -->
+<div class="page">
+  <h2>7. CLIP (Contrastive Language–Image Pretraining)</h2>
+  <p><b>CLIP</b> (OpenAI) is a dual-encoder model — one <b>image encoder</b> (typically a Vision Transformer or ResNet) and one <b>text encoder</b> (a Transformer) — trained so that matching (image, caption) pairs are pulled close together in a shared embedding space, and non-matching pairs are pushed apart.</p>
+
+  <h3>Architecture (Dual Encoder)</h3>
+  <div class="flow">
+    <div class="step">Image → Image Encoder (ViT/ResNet) → Image Embedding</div>
+    <div class="step">Text → Text Encoder (Transformer) → Text Embedding</div>
+  </div>
+  <p>Both encoders project into the SAME dimensionality (d) shared space, then embeddings are <b>L2-normalized</b> so cosine similarity = dot product. This shared, normalized space is what makes cross-modal search possible.</p>
+
+  <h2>8. Contrastive Learning — In Detail</h2>
+  <p><b>Contrastive learning</b> is a self-supervised training paradigm where the model learns representations by contrasting <b>positive pairs</b> (things that should be similar) against <b>negative pairs</b> (things that should be dissimilar) — instead of learning from explicit class labels.</p>
+
+  <h3>Core Idea (Step-by-Step)</h3>
+  <ol>
+    <li><b>Positive pair:</b> An image and its correct/matching caption (e.g., a photo of a dog + the text "a photo of a dog") form a positive pair — the model should embed them close together.</li>
+    <li><b>Negative pairs:</b> Every other mismatched (image, caption) combination in the training batch is treated as a negative pair — the model should push these apart.</li>
+    <li><b>Batch construction:</b> Take a batch of N (image, text) pairs scraped from the internet (CLIP used ~400 million pairs). Within one batch, there are N correct matches (diagonal) and N² − N incorrect combinations (off-diagonal).</li>
+    <li><b>Encode:</b> Pass all N images through the image encoder → N image embeddings. Pass all N texts through the text encoder → N text embeddings.</li>
+    <li><b>Similarity matrix:</b> Compute the cosine similarity between EVERY image embedding and EVERY text embedding → an N × N similarity matrix.</li>
+    <li><b>Contrastive objective (InfoNCE-style loss):</b> For each image, treat its true matching caption's similarity score as the "correct class" among all N captions in the batch, and apply cross-entropy loss — this pulls the diagonal (correct pairs) similarity up and pushes off-diagonal (incorrect pairs) similarity down. This is done symmetrically: once treating images as the anchor (image→text loss) and once treating text as the anchor (text→image loss).</li>
+    <li><b>Backpropagate</b> through both encoders jointly — over millions of batches, the model learns a shared space where semantically aligned image-text pairs are close and everything else is far.</li>
+  </ol>
+
+  <div class="formula-box">
+    <div class="label">CLIP Contrastive Loss (Symmetric InfoNCE)</div>
+    $$ \mathcal{L} = \frac{1}{2}\left( \mathcal{L}_{\text{image} \to \text{text}} + \mathcal{L}_{\text{text} \to \text{image}} \right) $$
+    $$ \mathcal{L}_{i \to t} = -\frac{1}{N}\sum_{i=1}^{N} \log \frac{\exp(\text{sim}(I_i, T_i)/\tau)}{\sum_{j=1}^{N}\exp(\text{sim}(I_i, T_j)/\tau)} $$
+    <div class="var-key">
+      <b>N</b> = batch size (number of image-text pairs)<br>
+      <b>I<sub>i</sub>, T<sub>i</sub></b> = embedding of the i-th image and its TRUE matching text<br>
+      <b>sim(·,·)</b> = cosine similarity between two embeddings<br>
+      <b>τ (tau)</b> = learnable temperature parameter controlling how "sharp"/confident the similarity distribution is<br>
+      <b>L<sub>t→i</sub></b> = same formula computed the other direction (text as anchor, image as candidates)
+    </div>
+  </div>
+
+  <div class="mnemonic">🧠 Memory Hook: "Musical chairs for embeddings" — in each batch, every image must find its one true caption among N candidates (and vice versa); loss rewards correctly picking your partner and rejecting everyone else's.</div>
+
+  <div class="callout"><span class="htag">Interview Insight:</span> CLIP requires NO manual class labels — it exploits naturally occurring (image, alt-text/caption) pairs from the web at massive scale, making it a form of <b>self-supervised</b> (specifically <i>weakly-supervised</i>) learning, not fully supervised classification.</div>
+
+  <div class="footer-tag">Multimodal RAG Cheat Sheet — Page 4 of 5 — CLIP Architecture &amp; Contrastive Learning</div>
+</div>
+
+
+<!-- ================= PAGE 5 ================= -->
+<div class="page">
+  <h2>9. How CLIP Works Across Both Text AND Images</h2>
+  <ul>
+    <li><b>Separate encoders, shared output space:</b> The image encoder and text encoder are architecturally different (ViT/CNN vs Transformer) — they don't share weights — but both are trained to output vectors of the <b>same dimensionality</b> that land in one common geometric space.</li>
+    <li><b>Alignment, not translation:</b> CLIP doesn't "translate" images into text or vice versa — it learns to place semantically equivalent concepts (a picture of a cat AND the word "cat") at similar coordinates in that shared space.</li>
+    <li><b>Zero-shot transfer:</b> Because of this alignment, CLIP can classify/retrieve images for concepts it never saw an explicit label for during fine-tuning — just embed candidate text labels and compare to the image embedding via cosine similarity ("zero-shot classification").</li>
+    <li><b>Symmetry enables both directions:</b> The same shared space supports text→image search (query with text, retrieve images), image→text search (query with an image, retrieve captions), AND image→image search.</li>
+  </ul>
+
+  <h2>10. How CLIP Solves the Two Multimodal RAG Problems</h2>
+  <table>
+    <tr><th>Problem</th><th>How CLIP Solves It</th></tr>
+    <tr><td>Representational Problem</td><td>CLIP's image encoder directly maps raw pixels → a dense vector — no captioning/LLM step required to "represent" the image as an embedding.</td></tr>
+    <tr><td>Retrieval Problem (search step)</td><td>Because text and image embeddings share one space, a text query embedding can be cosine-compared DIRECTLY against stored image embeddings — genuine cross-modal similarity search.</td></tr>
+    <tr><td>Retrieval Problem (context-injection step)</td><td>CLIP only solves the SEARCH/matching part — once the right image is found, you still pass the raw retrieved image itself to a vision-capable LLM at generation time so it can be used to construct the final answer.</td></tr>
+  </table>
+
+  <div class="callout"><span class="htag">Interview Trap:</span> CLIP embeddings tell you WHICH image is relevant — they do NOT let a standard text-only LLM "read" the image's content. You must still pass the actual retrieved image to a vision-capable generator model at answer time; CLIP is a retrieval component, not a generation component.</div>
+
+  <h2>11. Common Mistakes (❌ Wrong vs ✅ Correct)</h2>
+  <table>
+    <tr><th>❌ Wrong Belief</th><th>✅ Correct Understanding</th></tr>
+    <tr><td>"Embedding the image is the whole solution to multimodal RAG."</td><td>Embedding only solves retrieval matching; you still need a strategy to deliver the actual image content into the LLM's context at generation time.</td></tr>
+    <tr><td>"CLIP translates images into captions."</td><td>CLIP aligns embeddings in a shared space — it does not generate natural language descriptions; captioning is a separate task (done by vision LLMs).</td></tr>
+    <tr><td>"Multimodal embedding models are always better than the caption+text-embed approach."</td><td>Trade-off, not strict superiority — captioning approaches leverage mature, highly-tuned text embedding models and simple infra; multimodal embeddings preserve more visual fidelity but need specialized infra.</td></tr>
+    <tr><td>"CLIP needs labeled datasets like ImageNet to train."</td><td>CLIP is trained via contrastive learning on naturally occurring (image, alt-text) pairs scraped from the web — no manual class labels needed.</td></tr>
+  </table>
+
+  <h2>12. Exam Cram Facts</h2>
+  <ul>
+    <li>Unstructured loader decomposes documents into typed elements: Title, Text, Table, Image.</li>
+    <li>Two core problems: (1) Representational — how to embed an image; (2) Retrieval — how to search + inject image content into context.</li>
+    <li>Strategy 1: Vision LLM captions image → text embedding model embeds the caption (lossy, simple).</li>
+    <li>Strategy 2: Multimodal embedding model (CLIP) embeds image pixels directly into a shared text-image space (high fidelity, needs specialized infra).</li>
+    <li>CLIP = dual encoder (image encoder + text encoder) trained via contrastive learning to align matching image-text pairs.</li>
+    <li>Contrastive learning = pull positive pairs together, push negative pairs apart, using a batch-wise similarity matrix + cross-entropy-style (InfoNCE) loss.</li>
+    <li>CLIP loss is symmetric: computed once image→text, once text→image, then averaged.</li>
+    <li>Temperature (τ) controls sharpness of the similarity distribution in the loss.</li>
+    <li>CLIP enables zero-shot classification/retrieval — no fine-tuning needed for new concepts.</li>
+    <li>CLIP solves search/matching, NOT final context delivery — a vision-capable LLM is still needed at generation time to actually "read" the retrieved image.</li>
+  </ul>
+
+  <h2>13. Ultra-Fast Revision (60 Seconds)</h2>
+  <div class="callout" style="font-size:11px;">
+    <b>Definition:</b> Multimodal RAG = RAG extended to retrieve/reason over text + images together.<br>
+    <b>Goal:</b> Let a RAG pipeline use information locked inside figures/charts/scanned images, not just text.<br>
+    <b>Core Idea:</b> Unstructured loaders extract typed elements → images need a way to become embeddings (Representational Problem) → embeddings need a way to be searched + delivered to the LLM (Retrieval Problem).<br>
+    <b>Two Strategies:</b> (1) Caption via vision LLM → text-embed. (2) Multimodal embedding model (CLIP) → direct image embedding in shared space.<br>
+    <b>CLIP Mechanism:</b> Dual encoder + contrastive learning — pulls true (image,caption) pairs together, pushes mismatched pairs apart, via symmetric InfoNCE loss over a batch similarity matrix.<br>
+    <b>Key Formula:</b> Loss = ½(Image→Text CE loss + Text→Image CE loss), using cosine similarity scaled by temperature τ.<br>
+    <b>Interview Trap:</b> Embedding ≠ full solution — context delivery to a vision-capable LLM is a separate, required step.<br>
+    <b>Most Important Fact:</b> CLIP's power comes from a SHARED embedding space, learned with NO manual labels — just naturally occurring image-caption pairs at web scale.
+  </div>
+
+  <div class="footer-tag">Multimodal RAG Cheat Sheet — Page 5 of 5 — CLIP's Solution, Mistakes &amp; 60-Second Recap</div>
+</div>
+
+</body>
+</html>

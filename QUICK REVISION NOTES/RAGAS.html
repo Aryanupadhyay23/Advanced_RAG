@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>RAGAS — Complete Revision Cheat Sheet</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.min.js"></script>
+<style>
+  @page { size: A4; margin: 14mm 12mm; }
+  * { box-sizing: border-box; }
+  body {
+    font-family: 'Georgia', 'Times New Roman', serif;
+    color: #000;
+    background: #fff;
+    line-height: 1.32;
+    font-size: 11.3px;
+    margin: 0;
+    padding: 0;
+  }
+  .page {
+    page-break-after: always;
+    padding: 4px 2px;
+    min-height: 265mm;
+  }
+  .page:last-child { page-break-after: auto; }
+
+  h1.title {
+    text-align: center;
+    font-size: 22px;
+    letter-spacing: 1.5px;
+    border-bottom: 3px solid #000;
+    padding-bottom: 6px;
+    margin-bottom: 2px;
+    text-transform: uppercase;
+  }
+  .subtitle { text-align:center; font-size:11px; font-style:italic; margin-bottom:10px; }
+
+  h2 {
+    font-size: 14px;
+    text-transform: uppercase;
+    border-bottom: 2px solid #000;
+    padding-bottom: 3px;
+    margin: 14px 0 6px 0;
+    letter-spacing: 0.5px;
+  }
+  h3 {
+    font-size: 12.3px;
+    text-transform: none;
+    border-left: 4px solid #000;
+    padding-left: 6px;
+    margin: 10px 0 4px 0;
+    font-weight: bold;
+  }
+  p { margin: 3px 0; text-align: justify; }
+  ul, ol { margin: 3px 0 6px 16px; padding: 0; }
+  li { margin-bottom: 2px; }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 6px 0 10px 0;
+    font-size: 10.6px;
+  }
+  th, td {
+    border: 1px solid #000;
+    padding: 3.5px 5px;
+    text-align: left;
+    vertical-align: top;
+  }
+  th { background: #e8e8e8; font-weight: bold; text-transform: uppercase; font-size: 10px; }
+  tr:nth-child(even) td { background: #f5f5f5; }
+
+  .formula-box {
+    border: 1.5px solid #000;
+    background: #f0f0f0;
+    padding: 8px 10px;
+    margin: 8px 0;
+    text-align: center;
+    font-size: 13px;
+  }
+  .formula-box .label { font-size: 10px; text-transform:uppercase; font-weight:bold; text-align:left; margin-bottom:3px; letter-spacing:0.5px; }
+  .var-key { font-size: 10px; text-align:left; margin-top:5px; border-top:1px dashed #000; padding-top:4px; }
+
+  .callout {
+    border: 1px solid #000;
+    padding: 6px 8px;
+    margin: 6px 0;
+    font-size: 10.5px;
+    background: #fafafa;
+  }
+  .callout .htag { font-weight:bold; text-transform:uppercase; font-size:9.5px; letter-spacing:0.5px; }
+
+  .two-col { display: flex; gap: 10px; }
+  .two-col > div { flex: 1; }
+
+  .mnemonic { font-style: italic; border: 1px dashed #000; padding: 4px 6px; margin: 5px 0; font-size: 10.3px; }
+
+  .footer-tag {
+    text-align:center; font-size:9px; border-top:1px solid #000; margin-top:10px; padding-top:3px;
+  }
+  .page-num { text-align:right; font-size:9px; }
+
+  .flow {
+    display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap;
+    border:1px solid #000; padding:8px; margin:6px 0; font-size:10.5px; text-align:center;
+  }
+  .flow .step { border:1px solid #000; padding:5px 8px; background:#eee; flex:1; margin:2px; min-width:90px; }
+  .flow .arrow { font-size:16px; padding:0 4px; }
+
+  .wrong { text-decoration: none; }
+  .badge { display:inline-block; border:1px solid #000; padding:0 4px; font-size:9px; font-weight:bold; }
+</style>
+</head>
+<body>
+
+<!-- ================= PAGE 1 ================= -->
+<div class="page">
+  <h1 class="title">RAGAS — Retrieval Augmented Generation Assessment</h1>
+  <p class="subtitle">Framework &amp; Metric Suite for Evaluating RAG Pipelines — Complete Interview + Exam Revision Sheet</p>
+
+  <h2>1. What is RAGAS?</h2>
+  <p><b>RAGAS (Retrieval Augmented Generation Assessment)</b> is an open-source framework that provides reference-free and reference-based <b>metrics</b> to evaluate the quality of a RAG (Retrieval-Augmented Generation) pipeline — scoring the <b>retriever</b> and the <b>generator (LLM)</b> separately and jointly, without always needing full human-labeled ground truth.</p>
+  <ul>
+    <li><b>What is it?</b> A Python library + evaluation methodology built specifically for RAG systems, using LLMs themselves as automated judges of quality.</li>
+    <li><b>Why does it exist?</b> Traditional NLP metrics (BLEU, ROUGE) fail to capture factual correctness, grounding, and relevance in RAG outputs — RAGAS fills this gap.</li>
+    <li><b>What problem does it solve?</b> RAG pipelines have two failure surfaces: (a) bad retrieval (wrong/irrelevant context) and (b) bad generation (hallucination, irrelevance) — RAGAS isolates and scores both.</li>
+    <li>Enables <b>continuous evaluation</b> in CI/CD for LLM apps — regression testing before deploying prompt/model/retriever changes.</li>
+    <li>Works with <b>synthetic test set generation</b> (RAGAS can auto-generate Q&amp;A test sets from your documents) — reduces manual annotation cost.</li>
+  </ul>
+
+  <div class="mnemonic">🧠 Memory Hook: RAGAS = "Report Card for RAG" — it grades <u>Retrieval</u> (did we fetch the right notes?) and <u>Generation</u> (did the student answer using only those notes, correctly and directly?).</div>
+
+  <h3>Mental Model / Intuition</h3>
+  <p>Think of a RAG system as an <b>open-book exam</b>: the retriever hands the LLM a set of "book pages" (context), and the LLM must write an answer using only those pages. RAGAS is the <b>examiner</b> checking three things: (1) Did the student open the <i>right</i> pages? (2) Did the student's answer come only from those pages (no invented facts)? (3) Did the student actually answer the question asked?</p>
+
+  <h2>2. Why Metrics Matter</h2>
+  <ul>
+    <li><b>Debuggability:</b> A RAG app can "look fine" in a demo but silently hallucinate or retrieve junk at scale — metrics expose this quantitatively.</li>
+    <li><b>Component isolation:</b> Metrics let you attribute failure to the <i>retriever</i> vs the <i>generator</i> vs the <i>prompt</i> — without this, debugging is guesswork.</li>
+    <li><b>Regression testing:</b> Changing chunk size, embedding model, or LLM can silently degrade quality — metrics catch regressions before production.</li>
+    <li><b>Trust &amp; safety:</b> In domains like healthcare/legal/finance, hallucination is unacceptable — faithfulness metrics act as a guardrail signal.</li>
+    <li><b>Optimization target:</b> Metrics give you a number to optimize against when tuning chunk size, top-k, reranker, or prompt — without a metric you cannot A/B test.</li>
+    <li><b>Human eval doesn't scale:</b> Manual review of every RAG output is slow/expensive; automated LLM-judged metrics scale to thousands of samples.</li>
+  </ul>
+
+  <div class="callout"><span class="htag">Interview Insight:</span> A common trap question — "Why not just use accuracy?" Answer: RAG outputs are open-ended natural language, not discrete classes; there is no single "correct" answer string, so metrics must judge <i>semantic and factual alignment</i>, not exact match.</div>
+
+  <h2>3. LLM-as-a-Judge</h2>
+  <p><b>LLM-as-a-Judge</b> is the technique of using a capable LLM (e.g., GPT-4, Claude) as an automated evaluator that reads (question, context, answer) and outputs a structured judgment — a score, a verdict, or extracted statements — that is then aggregated into a metric.</p>
+  <ul>
+    <li><b>Meaning:</b> The "judge" LLM is prompted with a rubric/instructions (e.g., "break this answer into atomic claims" or "does this context support this claim: yes/no") — it does NOT generate the RAG answer, it only evaluates it.</li>
+    <li><b>Importance:</b> Most RAGAS metrics (Faithfulness, Context Precision, Answer Relevance) are LLM-as-a-Judge based, NOT simple string/embedding overlap.</li>
+    <li><b>Interview insight:</b> Judge LLM ≠ generator LLM necessarily — best practice uses a strong, independent judge model to reduce self-preference bias.</li>
+  </ul>
+
+  <h3>Two Judge Paradigms in RAGAS</h3>
+  <table>
+    <tr><th>Paradigm</th><th>How it works</th><th>Used in</th></tr>
+    <tr><td>Statement Decomposition + Verification</td><td>LLM breaks response/context into atomic statements, then verifies each against a reference (yes/no verdicts), score = ratio verified</td><td>Faithfulness, Context Precision (LLM-based)</td></tr>
+    <tr><td>Direct Prompted Scoring / Generation</td><td>LLM directly generates a judgment (e.g., generates probable questions from the answer, or classifies relevance) compared via embeddings</td><td>Answer/Response Relevance</td></tr>
+  </table>
+
+  <div class="callout"><span class="htag">Common Judge Pitfalls (Interview Trap):</span>
+    <ul style="margin-top:3px;">
+      <li>❌ Judge LLM hallucinating its own verdicts if prompt is ambiguous → mitigated with structured output parsing + few-shot examples.</li>
+      <li>❌ Using a weak/cheap LLM as judge → noisy, inconsistent scores.</li>
+      <li>❌ Judge and generator being the same model/family → possible self-bias inflating scores.</li>
+    </ul>
+  </div>
+
+  <div class="footer-tag">RAGAS Cheat Sheet — Page 1 of 10 — Foundations</div>
+</div>
+
+<!-- ================= PAGE 2 ================= -->
+<div class="page">
+  <h2>4. Key Terminology — The RAGAS Data Model</h2>
+  <p>Every RAGAS metric operates on a fixed set of fields per data point. Knowing these cold is essential — almost every metric formula references 2–3 of these fields.</p>
+
+  <table>
+    <tr><th>Term</th><th>Definition</th><th>Example</th></tr>
+    <tr><td><b>Sample</b></td><td>One single evaluation data point — a row containing the user's question, retrieved context(s), the RAG-generated response, and (optionally) reference/ground truth. The atomic unit RAGAS scores.</td><td>{question, contexts, answer, ground_truth}</td></tr>
+    <tr><td><b>User Input</b></td><td>The raw query/question posed by the end user to the RAG system — the input that triggers retrieval + generation.</td><td>"What is the capital of France?"</td></tr>
+    <tr><td><b>Retrieved Context</b></td><td>The set of text chunks/passages the retriever fetched from the vector store/knowledge base <i>in response to</i> the user input. This is what the LLM actually "sees" before generating.</td><td>["Paris is the capital and most populous city of France..."]</td></tr>
+    <tr><td><b>Response (Answer)</b></td><td>The final natural-language output generated by the LLM using the user input + retrieved context. This is what gets judged for faithfulness/relevance.</td><td>"The capital of France is Paris."</td></tr>
+    <tr><td><b>Reference</b></td><td>The ideal/ground-truth answer to the user input — usually human-written or curated, used as the gold standard for comparison in reference-based metrics.</td><td>"Paris is the capital of France."</td></tr>
+    <tr><td><b>Reference Contexts</b></td><td>The ground-truth set of context passages that <i>should have been</i> retrieved to correctly answer the question — used to evaluate whether the retriever fetched the right material (esp. in Context Recall).</td><td>["Paris, France's capital, is a major European city..."]</td></tr>
+    <tr><td><b>Evaluation Dataset</b></td><td>A structured collection of many Samples (rows) — the full test set on which the RAG pipeline is evaluated. Can be human-curated or synthetically generated by RAGAS.</td><td>A HuggingFace Dataset / CSV of N samples</td></tr>
+    <tr><td><b>Experiments</b></td><td>A tracked evaluation run — applying a specific pipeline configuration (e.g., chunk_size=500, top_k=3, model=gpt-4o) to the evaluation dataset and recording metric scores. Used to compare configurations over time.</td><td>Experiment A: chunk=256 → Faithfulness 0.81; Experiment B: chunk=512 → Faithfulness 0.88</td></tr>
+  </table>
+
+  <h3>Relationships Between Terms (Flow)</h3>
+  <div class="flow">
+    <div class="step">User Input</div><div class="arrow">→</div>
+    <div class="step">Retriever</div><div class="arrow">→</div>
+    <div class="step">Retrieved Context</div><div class="arrow">→</div>
+    <div class="step">LLM Generator</div><div class="arrow">→</div>
+    <div class="step">Response</div>
+  </div>
+  <div class="flow">
+    <div class="step">Reference (gold answer)</div>
+    <div class="step">Reference Contexts (gold chunks)</div>
+    <div class="step">Sample = all fields combined</div>
+  </div>
+
+  <div class="mnemonic">🧠 Memory Hook: "URCR-RR-EE" — <u>U</u>ser Input, <u>R</u>etrieved Context, <u>R</u>esponse, <u>R</u>eference, <u>R</u>eference Contexts → grouped into a <u>S</u>ample → many Samples = <u>E</u>valuation Dataset → run against a config = <u>E</u>xperiment.</div>
+
+  <h3>Which Terms Does Each Metric Need?</h3>
+  <table>
+    <tr><th>Metric</th><th>User Input</th><th>Retrieved Context</th><th>Response</th><th>Reference</th><th>Reference Contexts</th></tr>
+    <tr><td>Faithfulness</td><td>—</td><td>✅ Required</td><td>✅ Required</td><td>—</td><td>—</td></tr>
+    <tr><td>Response/Answer Relevance</td><td>✅ Required</td><td>optional</td><td>✅ Required</td><td>—</td><td>—</td></tr>
+    <tr><td>Context Precision</td><td>✅ Required</td><td>✅ Required</td><td>optional</td><td>often used</td><td>—</td></tr>
+    <tr><td>Context Recall</td><td>✅ Required</td><td>✅ Required</td><td>—</td><td>✅ Required</td><td>often used</td></tr>
+    <tr><td>Noise Sensitivity</td><td>✅ Required</td><td>✅ Required</td><td>✅ Required</td><td>✅ Required</td><td>—</td></tr>
+  </table>
+
+  <div class="callout"><span class="htag">Interview Trap:</span> Students confuse "Reference" (gold <i>answer</i>) with "Reference Contexts" (gold <i>chunks</i>). Reference is used to judge the <b>response</b>; Reference Contexts is used to judge the <b>retriever</b>.</div>
+
+  <div class="footer-tag">RAGAS Cheat Sheet — Page 2 of 10 — Key Terminology / Data Model</div>
+</div>
+
+<!-- ================= PAGE 3 ================= -->
+<div class="page">
+  <h2>5. What Do These Metrics Target?</h2>
+  <p>RAGAS metrics don't measure one generic "quality" — each targets a <b>specific failure mode</b> in one of the two pipeline stages: <b>Retrieval</b> or <b>Generation</b>.</p>
+
+  <table>
+    <tr><th>Pipeline Stage</th><th>Failure Mode Targeted</th><th>Metric(s)</th></tr>
+    <tr><td rowspan="2">Retrieval</td><td>Retrieved irrelevant/noisy chunks ranked high</td><td>Context Precision</td></tr>
+    <tr><td>Retriever missed necessary ground-truth information</td><td>Context Recall</td></tr>
+    <tr><td rowspan="2">Generation</td><td>LLM hallucinated facts not present in context</td><td>Faithfulness</td></tr>
+    <tr><td>LLM answered off-topic / incompletely / verbosely without addressing the question</td><td>Response (Answer) Relevance</td></tr>
+    <tr><td>End-to-End (Both)</td><td>System's robustness when irrelevant/noisy context is present — does noise corrupt the answer?</td><td>Noise Sensitivity</td></tr>
+  </table>
+
+  <div class="mnemonic">🧠 Memory Hook: "PRFN-R" — <u>P</u>recision (retrieval quality), <u>R</u>ecall (retrieval completeness), <u>F</u>aithfulness (generation grounding), <u>N</u>oise sensitivity (robustness), <u>R</u>elevance (generation on-topic-ness).</div>
+
+  <h2>6. What Are They Used For?</h2>
+  <ul>
+    <li><b>Component-level debugging:</b> Low Context Precision/Recall → fix chunking, embedding model, or retriever (BM25 vs dense vs hybrid); Low Faithfulness → fix prompt grounding instructions or switch generator LLM.</li>
+    <li><b>Pipeline configuration tuning:</b> Systematically sweep chunk size, top-k, reranker on/off, and pick the config maximizing the target metric(s).</li>
+    <li><b>Model/vendor selection:</b> Compare GPT-4o vs Claude vs Llama as the generator using identical retrieved context — isolates generation quality.</li>
+    <li><b>CI/CD regression gates:</b> Block deployment if Faithfulness or Context Recall drops below a threshold on the eval set.</li>
+    <li><b>Production monitoring:</b> Sample live traffic, run metrics periodically to detect silent drift (e.g., knowledge base going stale → recall drops).</li>
+    <li><b>Stakeholder reporting:</b> Translate abstract "is the RAG good?" into quantifiable, trackable numbers for leadership/compliance.</li>
+  </ul>
+
+  <h2>7. Step-by-Step Procedure to Calculate (General Pattern)</h2>
+  <p>Most RAGAS metrics follow a common <b>decompose → judge → aggregate</b> pattern:</p>
+  <ol>
+    <li><b>Collect the Sample:</b> Gather the relevant fields for that metric (per the table on Page 2) — e.g., Faithfulness needs {response, retrieved_context}.</li>
+    <li><b>Decompose:</b> Use the judge LLM to break the response (or context) into a set of atomic, independently-verifiable statements/claims. This avoids scoring a whole paragraph as one blob.</li>
+    <li><b>Judge each unit:</b> For each atomic statement (or each retrieved chunk), prompt the judge LLM with a yes/no or relevance verdict against the appropriate reference (context, ground truth, or question).</li>
+    <li><b>Aggregate verdicts:</b> Compute the metric as a ratio — (number of "supported"/"relevant"/"correct" units) / (total units) — producing a score in [0, 1].</li>
+    <li><b>Average across dataset:</b> Repeat per-sample, then report the mean score across the full Evaluation Dataset as the overall pipeline score for that Experiment.</li>
+  </ol>
+
+  <div class="flow">
+    <div class="step">1. Collect Sample fields</div><div class="arrow">→</div>
+    <div class="step">2. LLM decomposes into statements/claims</div><div class="arrow">→</div>
+    <div class="step">3. LLM verifies each (yes/no)</div><div class="arrow">→</div>
+    <div class="step">4. Ratio = score ∈[0,1]</div><div class="arrow">→</div>
+    <div class="step">5. Mean over dataset</div>
+  </div>
+
+  <div class="callout"><span class="htag">Interview Insight:</span> Because most metrics reduce to a <i>ratio of verified units to total units</i>, all RAGAS metric scores are bounded in <b>[0, 1]</b>, where 1 = perfect and 0 = complete failure. This uniform scale is what makes RAGAS scores comparable across metrics and experiments.</div>
+
+  <div class="footer-tag">RAGAS Cheat Sheet — Page 3 of 10 — Metric Targets, Uses &amp; General Procedure</div>
+</div>
+
+<!-- ================= PAGE 4 ================= -->
+<div class="page">
+  <h2>8. FAITHFULNESS</h2>
+  <p><b>Definition:</b> Measures whether the <b>generated response</b> is factually grounded in / entailed by the <b>retrieved context</b> — i.e., does the response avoid hallucinating claims not supported by the context?</p>
+
+  <h3>What It Targets</h3>
+  <ul>
+    <li>Hallucination — the LLM inventing facts not present anywhere in the retrieved context.</li>
+    <li>Over-generalization — LLM adding claims from its own parametric memory instead of only the given context.</li>
+    <li>Generator-stage failure (NOT a retrieval metric — assumes context is fixed and checks only if the answer respects it).</li>
+  </ul>
+
+  <h3>Step-by-Step Procedure</h3>
+  <ol>
+    <li><b>Statement Extraction:</b> Judge LLM reads the response and breaks it into a list of simple, atomic, standalone claims (statements), resolving pronouns/context so each stands alone.</li>
+    <li><b>Verification:</b> For each atomic statement, the judge LLM checks: "Can this statement be directly inferred from the retrieved context?" → outputs a verdict of 1 (supported) or 0 (not supported).</li>
+    <li><b>Count:</b> Sum the number of statements verdict = 1 (call this <i>V</i>) and total number of statements extracted (call this <i>S</i>).</li>
+    <li><b>Compute Ratio:</b> Faithfulness score = V / S.</li>
+  </ol>
+
+  <div class="formula-box">
+    <div class="label">Faithfulness Formula</div>
+    $$ \text{Faithfulness} = \frac{|\text{Supported Statements}|}{|\text{Total Statements in Response}|} $$
+    <div class="var-key">
+      <b>Supported Statements</b> = atomic claims from the response that the judge LLM verified as inferable from retrieved context<br>
+      <b>Total Statements</b> = all atomic claims extracted from the response
+    </div>
+  </div>
+
+  <h3>Worked Example</h3>
+  <table>
+    <tr><th>Response Statement</th><th>Supported by Context?</th><th>Verdict</th></tr>
+    <tr><td>"Einstein was born in Germany"</td><td>Context confirms this</td><td>1</td></tr>
+    <tr><td>"Einstein won the Nobel Prize in 1921"</td><td>Context confirms this</td><td>1</td></tr>
+    <tr><td>"Einstein was a poor student in school"</td><td>Not mentioned/contradicted in context (common myth)</td><td>0</td></tr>
+  </table>
+  <div class="formula-box">
+    $$ \text{Faithfulness} = \frac{2}{3} = 0.67 $$
+  </div>
+
+  <h3>Results Interpretation</h3>
+  <table>
+    <tr><th>Score Range</th><th>Interpretation</th><th>Action</th></tr>
+    <tr><td>0.90 – 1.00</td><td>Excellent grounding, near-zero hallucination</td><td>Ship it; monitor in production</td></tr>
+    <tr><td>0.70 – 0.89</td><td>Mostly grounded, some minor unsupported claims</td><td>Tighten prompt: "answer ONLY using the context"</td></tr>
+    <tr><td>0.40 – 0.69</td><td>Significant hallucination risk</td><td>Investigate prompt, consider a more instructable/grounded model</td></tr>
+    <tr><td>&lt; 0.40</td><td>Severe hallucination — response largely fabricated</td><td>Pipeline unsafe for production; urgent fix needed</td></tr>
+  </table>
+
+  <div class="callout"><span class="htag">Interview Trap:</span> Faithfulness does NOT check if the context itself is correct or if the answer is <i>relevant</i> to the question — a response can be 100% faithful (fully grounded in context) yet completely irrelevant to what was asked. Faithfulness and Relevance are orthogonal!</div>
+
+  <div class="footer-tag">RAGAS Cheat Sheet — Page 4 of 10 — Faithfulness</div>
+</div>
+
+<!-- ================= PAGE 5 ================= -->
+<div class="page">
+  <h2>9. RESPONSE (ANSWER) RELEVANCE</h2>
+  <p><b>Definition:</b> Measures how directly and completely the generated response addresses the original user input — penalizing incomplete, redundant, or off-topic answers, independent of factual correctness.</p>
+
+  <h3>What It Targets</h3>
+  <ul>
+    <li>Off-topic or evasive answers that don't actually answer the question asked.</li>
+    <li>Incomplete answers — partially addressing the question.</li>
+    <li>Verbose/redundant answers padded with irrelevant information.</li>
+    <li>NOTE: does NOT check factual accuracy — a confidently wrong but on-topic answer can still score high relevance.</li>
+  </ul>
+
+  <h3>Step-by-Step Procedure (Reverse-Question Generation Method)</h3>
+  <ol>
+    <li><b>Generate synthetic questions:</b> Judge LLM reads ONLY the generated response and generates N (typically 3) plausible questions that this response could be answering.</li>
+    <li><b>Embed:</b> Embed the original user input (actual question) and each of the N generated questions using an embedding model.</li>
+    <li><b>Compute similarity:</b> Calculate cosine similarity between the original question's embedding and each generated question's embedding.</li>
+    <li><b>Average:</b> Mean of the N cosine similarities = Response Relevance score.</li>
+    <li><b>(Optional) Noncommittal penalty:</b> If the response is vague/noncommittal (e.g., "I don't know", "it depends"), the metric can be forced toward 0 regardless of embedding similarity.</li>
+  </ol>
+
+  <div class="formula-box">
+    <div class="label">Response Relevance Formula</div>
+    $$ \text{Answer Relevance} = \frac{1}{N} \sum_{i=1}^{N} \cos(E_{g_i}, E_o) $$
+    <div class="var-key">
+      <b>N</b> = number of synthetic questions generated (typically 3)<br>
+      <b>E<sub>gi</sub></b> = embedding of the i-th LLM-generated question (reverse-engineered from the response)<br>
+      <b>E<sub>o</sub></b> = embedding of the original user input (actual question)<br>
+      <b>cos(·,·)</b> = cosine similarity between two embedding vectors
+    </div>
+  </div>
+
+  <h3>Worked Example</h3>
+  <table>
+    <tr><th>Item</th><th>Text</th></tr>
+    <tr><td>Original Question</td><td>"What is the capital of France?"</td></tr>
+    <tr><td>Response</td><td>"Paris is the capital of France, located on the Seine river."</td></tr>
+    <tr><td>Generated Q1</td><td>"What is the capital city of France?" → cos sim ≈ 0.96</td></tr>
+    <tr><td>Generated Q2</td><td>"Which river runs through France's capital?" → cos sim ≈ 0.55</td></tr>
+    <tr><td>Generated Q3</td><td>"What is France's capital city?" → cos sim ≈ 0.95</td></tr>
+  </table>
+  <div class="formula-box">$$ \text{Relevance} = \frac{0.96+0.55+0.95}{3} \approx 0.82 $$</div>
+
+  <h3>Results Interpretation</h3>
+  <table>
+    <tr><th>Score Range</th><th>Interpretation</th></tr>
+    <tr><td>0.85 – 1.00</td><td>Highly on-topic, directly answers the question</td></tr>
+    <tr><td>0.60 – 0.84</td><td>Partially relevant, may contain tangents or incompleteness</td></tr>
+    <tr><td>&lt; 0.60</td><td>Largely off-topic, evasive, or noncommittal response</td></tr>
+  </table>
+
+  <div class="callout"><span class="htag">Interview Trap:</span> A response can be <b>highly relevant but unfaithful</b> (directly answers the question but with hallucinated facts) OR <b>highly faithful but irrelevant</b> (100% grounded in context, but answers a different question than asked). Always report both together.</div>
+
+  <div class="footer-tag">RAGAS Cheat Sheet — Page 5 of 10 — Response Relevance</div>
+</div>
+
+<!-- ================= PAGE 6 ================= -->
+<div class="page">
+  <h2>10. CONTEXT PRECISION</h2>
+  <p><b>Definition:</b> Measures whether the <b>relevant</b> chunks among the retrieved context are ranked <b>higher</b> (appear earlier) than irrelevant ones — a retrieval-quality metric that rewards good ranking, not just retrieval.</p>
+
+  <h3>What It Targets</h3>
+  <ul>
+    <li>Irrelevant/noisy chunks polluting the top of the retrieved context list.</li>
+    <li>Poor reranking — relevant chunks buried at the bottom of the retrieved list (wastes LLM attention budget, increases hallucination risk).</li>
+    <li>Retrieval-stage failure — it does NOT look at the generated response at all.</li>
+  </ul>
+
+  <h3>Step-by-Step Procedure</h3>
+  <ol>
+    <li><b>Per-chunk relevance judgment:</b> For each retrieved chunk (at rank k), the judge LLM (or comparison to reference) decides: is this chunk relevant to answering the user input? → binary relevance v<sub>k</sub> ∈ {0,1}.</li>
+    <li><b>Compute Precision@k for every rank:</b> For each position k in the ranked list, calculate Precision@k = (relevant chunks in top-k) / k.</li>
+    <li><b>Weight by relevance indicator:</b> Multiply each Precision@k by v<sub>k</sub> (only counts if the chunk AT that rank is itself relevant).</li>
+    <li><b>Sum and normalize:</b> Sum all weighted Precision@k values and divide by the total number of relevant chunks in the retrieved set.</li>
+  </ol>
+
+  <div class="formula-box">
+    <div class="label">Context Precision @ K Formula</div>
+    $$ \text{Context Precision@K} = \frac{\sum_{k=1}^{K} \left(\text{Precision@k} \times v_k\right)}{\text{Total number of relevant items in top-K}} $$
+    <div class="var-key">
+      <b>K</b> = total number of retrieved chunks considered<br>
+      <b>Precision@k</b> = (true positives in top-k) / k<br>
+      <b>v<sub>k</sub></b> = 1 if the chunk at rank k is relevant, else 0
+    </div>
+  </div>
+
+  <h3>Worked Example (K=4 retrieved chunks)</h3>
+  <table>
+    <tr><th>Rank k</th><th>Relevant? (v_k)</th><th>Precision@k</th><th>Weighted (P@k × v_k)</th></tr>
+    <tr><td>1</td><td>1</td><td>1/1 = 1.00</td><td>1.00</td></tr>
+    <tr><td>2</td><td>0</td><td>1/2 = 0.50</td><td>0.00</td></tr>
+    <tr><td>3</td><td>1</td><td>2/3 = 0.67</td><td>0.67</td></tr>
+    <tr><td>4</td><td>0</td><td>2/4 = 0.50</td><td>0.00</td></tr>
+  </table>
+  <div class="formula-box">$$ \text{Context Precision} = \frac{1.00+0.67}{2 \text{ (total relevant)}} = 0.835 $$</div>
+
+  <h3>Results Interpretation</h3>
+  <table>
+    <tr><th>Score Range</th><th>Interpretation</th><th>Action</th></tr>
+    <tr><td>0.85 – 1.00</td><td>Relevant chunks consistently ranked at top</td><td>Retriever/reranker well-tuned</td></tr>
+    <tr><td>0.50 – 0.84</td><td>Relevant chunks present but ranking is noisy</td><td>Add/improve a reranker (e.g., cross-encoder)</td></tr>
+    <tr><td>&lt; 0.50</td><td>Irrelevant chunks dominate top ranks</td><td>Revisit embedding model, chunking strategy, or top-k value</td></tr>
+  </table>
+
+  <div class="mnemonic">🧠 Memory Hook: Precision = "Purity of what's on top" — like a search engine's first page: if junk links are #1 and #2 while the good link is #7, precision is low even though the good result IS present somewhere.</div>
+
+  <div class="footer-tag">RAGAS Cheat Sheet — Page 6 of 10 — Context Precision</div>
+</div>
+
+<!-- ================= PAGE 7 ================= -->
+<div class="page">
+  <h2>11. CONTEXT RECALL</h2>
+  <p><b>Definition:</b> Measures whether the retriever successfully fetched <b>ALL the necessary information</b> present in the reference (ground-truth answer / reference contexts) — i.e., did retrieval miss anything essential?</p>
+
+  <h3>What It Targets</h3>
+  <ul>
+    <li>Retrieval completeness — did the retriever fetch everything needed to construct a correct, complete answer?</li>
+    <li>Under-retrieval — the knowledge base has the right info but the retriever failed to surface it (wrong embeddings, too-small top-k, poor chunking splitting facts apart).</li>
+    <li>This is the "opposite direction" check to Precision: Recall asks "did we get everything we need?" vs Precision asks "is everything we got actually needed?"</li>
+  </ul>
+
+  <h3>Step-by-Step Procedure</h3>
+  <ol>
+    <li><b>Decompose reference:</b> Judge LLM breaks the <b>reference (ground-truth) answer</b> into individual atomic claims/sentences.</li>
+    <li><b>Attribution check:</b> For each atomic claim in the reference, check whether it <b>can be attributed to / found within</b> the retrieved context → binary verdict 1 (attributable) or 0 (not found in retrieved context).</li>
+    <li><b>Count:</b> Sum claims attributable to retrieved context (call this <i>A</i>) and total claims in the reference (call this <i>C</i>).</li>
+    <li><b>Compute Ratio:</b> Context Recall = A / C.</li>
+  </ol>
+
+  <div class="formula-box">
+    <div class="label">Context Recall Formula</div>
+    $$ \text{Context Recall} = \frac{|\text{GT claims attributable to retrieved context}|}{|\text{Total claims in Ground Truth (Reference)}|} $$
+    <div class="var-key">
+      <b>GT claims attributable</b> = sentences/claims from the reference answer that are supported by content present in retrieved context<br>
+      <b>Total claims in GT</b> = all atomic sentences/claims extracted from the reference answer
+    </div>
+  </div>
+
+  <h3>Worked Example</h3>
+  <table>
+    <tr><th>Reference Claim</th><th>Found in Retrieved Context?</th><th>Verdict</th></tr>
+    <tr><td>"The Eiffel Tower was completed in 1889"</td><td>Yes — context mentions this</td><td>1</td></tr>
+    <tr><td>"It was built for the World's Fair"</td><td>Yes — context mentions this</td><td>1</td></tr>
+    <tr><td>"It is 330 meters tall"</td><td>No — missing from retrieved context</td><td>0</td></tr>
+  </table>
+  <div class="formula-box">$$ \text{Context Recall} = \frac{2}{3} = 0.67 $$</div>
+
+  <h3>Results Interpretation</h3>
+  <table>
+    <tr><th>Score Range</th><th>Interpretation</th><th>Action</th></tr>
+    <tr><td>0.90 – 1.00</td><td>Retriever fetches nearly all necessary information</td><td>Retrieval stage healthy</td></tr>
+    <tr><td>0.60 – 0.89</td><td>Some essential facts missed</td><td>Increase top-k, improve chunk overlap, try hybrid search</td></tr>
+    <tr><td>&lt; 0.60</td><td>Retriever missing most needed info — knowledge gap or index problem</td><td>Audit knowledge base coverage, re-check embedding model/index</td></tr>
+  </table>
+
+  <div class="callout"><span class="htag">Interview Trap (Precision vs Recall):</span> High Precision + Low Recall = retriever is conservative, fetches only a few but clean chunks, missing coverage. Low Precision + High Recall = retriever casts a wide net, gets everything needed but buried in noise. The classic precision-recall trade-off applies directly to RAG retrieval tuning (top-k size is the main lever).</div>
+
+  <div class="footer-tag">RAGAS Cheat Sheet — Page 7 of 10 — Context Recall</div>
+</div>
+
+<!-- ================= PAGE 8 ================= -->
+<div class="page">
+  <h2>12. NOISE SENSITIVITY</h2>
+  <p><b>Definition:</b> Measures how often the generated response contains <b>incorrect claims</b> that were pulled from <b>irrelevant/noisy chunks</b> in the retrieved context — i.e., how easily is the generator "distracted" or corrupted by noise?</p>
+
+  <h3>What It Targets</h3>
+  <ul>
+    <li>Generator's <b>robustness</b> to imperfect retrieval — real-world retrievers are never perfect, so this measures graceful degradation vs. cascading failure.</li>
+    <li>Cases where the LLM incorrectly uses irrelevant chunks to fabricate wrong claims in the response (distinct from Faithfulness, which checks grounding in ANY retrieved chunk, relevant or not).</li>
+    <li>An end-to-end (retrieval + generation interaction) metric — it specifically studies the failure mode where noisy context leaks into the final answer as an error.</li>
+  </ul>
+
+  <h3>Step-by-Step Procedure</h3>
+  <ol>
+    <li><b>Decompose response:</b> Judge LLM breaks the generated response into atomic claims (similar to Faithfulness step 1).</li>
+    <li><b>Classify each retrieved chunk:</b> Label each retrieved context chunk as "relevant" or "irrelevant/noisy" with respect to the user input (using reference/ground truth for calibration).</li>
+    <li><b>Trace each claim's source:</b> For each atomic claim in the response, determine (a) is it correct (matches ground truth)? and (b) which chunk(s) it is attributable to (relevant or irrelevant chunk)?</li>
+    <li><b>Flag noise-induced errors:</b> Count claims that are <b>incorrect</b> AND were derived from an <b>irrelevant (noisy)</b> chunk.</li>
+    <li><b>Compute Ratio:</b> Noise Sensitivity = (incorrect claims attributable to noisy context) / (total claims in response).</li>
+  </ol>
+
+  <div class="formula-box">
+    <div class="label">Noise Sensitivity Formula</div>
+    $$ \text{Noise Sensitivity} = \frac{|\text{Incorrect claims derived from irrelevant/noisy context}|}{|\text{Total claims in the response}|} $$
+    <div class="var-key">
+      <b>Incorrect claims from noisy context</b> = response claims that are both (a) wrong/unsupported by ground truth AND (b) traceable to an irrelevant retrieved chunk<br>
+      <b>Total claims</b> = all atomic claims extracted from the response
+    </div>
+  </div>
+
+  <h3>Worked Example</h3>
+  <table>
+    <tr><th>Response Claim</th><th>Correct?</th><th>Source Chunk Relevant?</th><th>Counts as Noise Error?</th></tr>
+    <tr><td>"The mitochondria is the powerhouse of the cell"</td><td>Yes</td><td>Relevant chunk</td><td>No</td></tr>
+    <tr><td>"Mitochondria were discovered in 1980"</td><td>No (wrong date)</td><td>Irrelevant/noisy chunk</td><td><b>Yes</b></td></tr>
+    <tr><td>"Mitochondria have their own DNA"</td><td>Yes</td><td>Relevant chunk</td><td>No</td></tr>
+  </table>
+  <div class="formula-box">$$ \text{Noise Sensitivity} = \frac{1}{3} = 0.33 $$</div>
+
+  <h3>Results Interpretation (⚠ Lower is Better — reverse-scaled metric!)</h3>
+  <table>
+    <tr><th>Score Range</th><th>Interpretation</th><th>Action</th></tr>
+    <tr><td>0.00 – 0.10</td><td>Generator highly robust — ignores noisy chunks well</td><td>Healthy; good prompt discipline</td></tr>
+    <tr><td>0.10 – 0.30</td><td>Occasional noise leakage into answers</td><td>Strengthen prompt: "ignore irrelevant context"; consider reranking to reduce noise volume</td></tr>
+    <tr><td>&gt; 0.30</td><td>Generator easily corrupted by irrelevant context</td><td>Reduce top-k, add reranker/filter step, or switch to more instructable LLM</td></tr>
+  </table>
+
+  <div class="callout"><span class="htag">Interview Trap:</span> Noise Sensitivity is the ONE core RAGAS metric where <b>lower = better</b> (it's an error rate, not a quality score) — unlike Faithfulness/Precision/Recall/Relevance where higher = better. Always clarify direction when reporting!</div>
+
+  <div class="footer-tag">RAGAS Cheat Sheet — Page 8 of 10 — Noise Sensitivity</div>
+</div>
+
+<!-- ================= PAGE 9 ================= -->
+<div class="page">
+  <h2>13. Master Comparison Table — All 5 Metrics</h2>
+  <table>
+    <tr><th>Metric</th><th>Stage</th><th>Direction</th><th>Needs Reference?</th><th>Core Question Answered</th></tr>
+    <tr><td>Context Precision</td><td>Retrieval</td><td>Higher = better</td><td>Optional (LLM-based) / Yes (non-LLM)</td><td>Are relevant chunks ranked at the top?</td></tr>
+    <tr><td>Context Recall</td><td>Retrieval</td><td>Higher = better</td><td><b>Yes (required)</b></td><td>Did we retrieve everything needed?</td></tr>
+    <tr><td>Faithfulness</td><td>Generation</td><td>Higher = better</td><td>No</td><td>Is the answer grounded in retrieved context?</td></tr>
+    <tr><td>Response Relevance</td><td>Generation</td><td>Higher = better</td><td>No</td><td>Does the answer address the question asked?</td></tr>
+    <tr><td>Noise Sensitivity</td><td>Retrieval + Generation</td><td><b>Lower = better</b></td><td>Yes (required)</td><td>Does noisy context corrupt the answer?</td></tr>
+  </table>
+
+  <h3>Diagnostic Matrix — Which Metric Flags Which Root Cause?</h3>
+  <table>
+    <tr><th>Symptom</th><th>Likely Root Cause</th><th>Metric that flags it</th><th>Fix</th></tr>
+    <tr><td>Answers cite wrong/invented facts</td><td>Weak grounding instructions / weak LLM</td><td>Low Faithfulness</td><td>Improve system prompt, use stronger LLM</td></tr>
+    <tr><td>Answers dodge the actual question</td><td>Poor prompt structure / verbose generation</td><td>Low Response Relevance</td><td>Tighten prompt, add "answer directly" instruction</td></tr>
+    <tr><td>Correct chunks exist but buried low</td><td>Weak reranking / embedding model</td><td>Low Context Precision</td><td>Add cross-encoder reranker</td></tr>
+    <tr><td>Key facts never retrieved at all</td><td>Poor chunking / small top-k / index gaps</td><td>Low Context Recall</td><td>Increase top-k, better chunk overlap, hybrid search</td></tr>
+    <tr><td>Correct chunk present but wrong facts sneak in</td><td>LLM distracted by noisy chunks</td><td>High Noise Sensitivity</td><td>Filter/rerank noisy chunks, instruct LLM to disregard irrelevant text</td></tr>
+  </table>
+
+  <h2>14. Common Mistakes (❌ Wrong vs ✅ Correct)</h2>
+  <table>
+    <tr><th>❌ Wrong Belief</th><th>✅ Correct Understanding</th></tr>
+    <tr><td>"High Faithfulness means the answer is correct."</td><td>Faithfulness only checks grounding in context — if the context itself is wrong, a faithful answer can still be factually wrong overall.</td></tr>
+    <tr><td>"Context Recall and Context Precision measure the same thing."</td><td>Precision = purity/ranking of retrieved set; Recall = completeness against ground truth — they are complementary, not redundant.</td></tr>
+    <tr><td>"Noise Sensitivity — higher score is better, like other metrics."</td><td>Noise Sensitivity is an error rate — LOWER is better.</td></tr>
+    <tr><td>"Response Relevance checks factual accuracy."</td><td>It checks topical alignment with the question via embeddings — a wrong-but-on-topic answer can score high.</td></tr>
+    <tr><td>"You always need ground-truth references to run RAGAS."</td><td>Faithfulness and Response Relevance are reference-free; only Context Recall and Noise Sensitivity strictly require a reference.</td></tr>
+    <tr><td>"RAGAS scores are exact, deterministic ground truth."</td><td>Since these use LLM-as-a-Judge, scores have inherent variance/noise — run multiple trials or use a strong stable judge for reliability.</td></tr>
+  </table>
+
+  <h2>15. Exam Cram Facts (High-Yield, One Day Before)</h2>
+  <ul>
+    <li>RAGAS = evaluation framework for RAG; scores retrieval and generation separately.</li>
+    <li>Core data fields: user_input, retrieved_context(s), response, reference, reference_contexts.</li>
+    <li>LLM-as-a-Judge underlies Faithfulness, Context Precision (LLM variant), and indirectly Response Relevance's question-generation step.</li>
+    <li>All 4 of {Faithfulness, Precision, Recall, Relevance} scores are in [0,1], higher = better.</li>
+    <li>Noise Sensitivity is in [0,1] but LOWER = better (it's an error rate).</li>
+    <li>Faithfulness formula = supported statements / total statements (in the response).</li>
+    <li>Response Relevance = mean cosine similarity between original question and N LLM-reverse-generated questions from the answer.</li>
+    <li>Context Precision = weighted-by-rank average precision over retrieved chunks; rewards good ranking.</li>
+    <li>Context Recall = fraction of ground-truth claims attributable to the retrieved context.</li>
+    <li>Noise Sensitivity = fraction of response claims that are wrong AND traced to an irrelevant/noisy chunk.</li>
+    <li>Only Context Recall and Noise Sensitivity strictly require a Reference (ground truth answer).</li>
+    <li>Context Precision and Recall = retrieval-stage metrics; Faithfulness and Relevance = generation-stage metrics.</li>
+    <li>An "Experiment" in RAGAS = one full evaluation run of a specific pipeline config over the Evaluation Dataset.</li>
+    <li>A "Sample" is the atomic unit: one question + its context(s) + response (+ optional reference).</li>
+    <li>Statement decomposition (breaking text into atomic claims) is the shared mechanism behind Faithfulness, Recall, and Noise Sensitivity.</li>
+  </ul>
+
+  <div class="footer-tag">RAGAS Cheat Sheet — Page 9 of 10 — Comparisons, Mistakes &amp; Cram Facts</div>
+</div>
+
+<!-- ================= PAGE 10 ================= -->
+<div class="page">
+  <h2>16. High-Frequency Interview Questions</h2>
+  <table>
+    <tr><th>#</th><th>Question</th><th>Concise Answer</th></tr>
+    <tr><td>1</td><td>What is RAGAS?</td><td>An open-source framework using LLM-as-a-judge to evaluate RAG pipelines across retrieval and generation quality without always needing human labels.</td></tr>
+    <tr><td>2</td><td>Name the core RAGAS metrics and their target stage.</td><td>Context Precision &amp; Recall (retrieval); Faithfulness &amp; Response Relevance (generation); Noise Sensitivity (both).</td></tr>
+    <tr><td>3</td><td>Why is Faithfulness reference-free?</td><td>It only checks if response claims are entailed by the retrieved context — no separate ground truth answer is needed for this check.</td></tr>
+    <tr><td>4</td><td>What's the difference between Context Precision and Context Recall?</td><td>Precision = are the top-ranked retrieved chunks relevant (purity/ranking); Recall = did we retrieve everything the ground truth needs (completeness).</td></tr>
+    <tr><td>5</td><td>Why does Response Relevance use reverse-question generation instead of direct scoring?</td><td>Comparing question-to-question embeddings is more robust than trying to embed a question against a long-form answer directly; it isolates topical alignment cleanly.</td></tr>
+    <tr><td>6</td><td>Can a response be Faithful but not Relevant?</td><td>Yes — the answer can be fully grounded in the context yet answer a different question than what was asked.</td></tr>
+    <tr><td>7</td><td>Why is Noise Sensitivity direction reversed (lower=better)?</td><td>It's defined as an error rate (fraction of wrong claims from noisy chunks), so 0 = no noise-induced errors = ideal.</td></tr>
+    <tr><td>8</td><td>What is "Reference Contexts" and how does it differ from "Reference"?</td><td>Reference = gold-standard answer text; Reference Contexts = gold-standard chunks that should have been retrieved. One judges the response, the other judges the retriever.</td></tr>
+    <tr><td>9</td><td>What is an "Experiment" in the RAGAS data model?</td><td>A single evaluation run applying one pipeline configuration to the evaluation dataset, producing a set of metric scores for comparison against other configs.</td></tr>
+    <tr><td>10</td><td>Why use LLM-as-a-Judge instead of BLEU/ROUGE?</td><td>BLEU/ROUGE rely on surface n-gram overlap and fail to capture semantic correctness/factual grounding; LLM judges can reason about meaning and entailment.</td></tr>
+    <tr><td>11</td><td>What's a risk of using the same LLM as both generator and judge?</td><td>Self-preference bias — the judge may rate its own generation style more favorably, inflating scores.</td></tr>
+    <tr><td>12</td><td>How would you debug a RAG app with high Faithfulness but low Response Relevance?</td><td>The generator isn't hallucinating, but likely mis-answering/derailing from the question — check prompt clarity and instruction-following, not retrieval.</td></tr>
+    <tr><td>13</td><td>How would you debug low Context Recall but high Context Precision?</td><td>Retriever is too conservative — fetching a small, clean set that misses necessary facts. Increase top-k or improve chunk overlap/coverage.</td></tr>
+    <tr><td>14</td><td>What does "atomic statement decomposition" mean and why is it used?</td><td>Breaking a response/reference into independent, self-contained claims so each can be verified individually — avoids all-or-nothing scoring of a whole paragraph.</td></tr>
+    <tr><td>15</td><td>Are RAGAS metric scores deterministic?</td><td>No — since they rely on LLM judgments, there's inherent stochastic variance; using structured prompts, few-shot examples, and a strong judge model reduces this.</td></tr>
+  </table>
+
+  <h2>17. Advantages &amp; Limitations</h2>
+  <div class="two-col">
+    <div>
+      <h3>Advantages</h3>
+      <ul>
+        <li>Automated, scalable evaluation without full manual review.</li>
+        <li>Component-level diagnosis (retrieval vs generation).</li>
+        <li>Reference-free options reduce annotation cost.</li>
+        <li>Standardized [0,1] scale across metrics.</li>
+        <li>Integrates into CI/CD for regression testing.</li>
+        <li>Can auto-generate synthetic test sets from docs.</li>
+      </ul>
+    </div>
+    <div>
+      <h3>Limitations</h3>
+      <ul>
+        <li>Depends heavily on judge LLM quality/cost.</li>
+        <li>LLM judgments are noisy/non-deterministic.</li>
+        <li>Self-bias risk if judge = generator model.</li>
+        <li>Some metrics require costly ground-truth references.</li>
+        <li>Metrics can be gamed by verbose/hedging responses.</li>
+        <li>Doesn't replace human eval for nuanced correctness.</li>
+      </ul>
+    </div>
+  </div>
+
+  <h2>18. Ultra-Fast Revision (60 Seconds)</h2>
+  <div class="callout" style="font-size:11px;">
+    <b>Definition:</b> RAGAS = LLM-judge-based evaluation framework for RAG pipelines.<br>
+    <b>Goal:</b> Quantify retrieval quality + generation quality separately and jointly.<br>
+    <b>Core Idea:</b> Decompose text into atomic claims → LLM verifies each → aggregate ratio → score ∈[0,1].<br>
+    <b>Key Formula (shared shape):</b> Metric = (Verified/Supported Units) / (Total Units).<br>
+    <b>5 Metrics:</b> Context Precision (ranking purity) • Context Recall (retrieval completeness) • Faithfulness (grounding) • Response Relevance (on-topic-ness) • Noise Sensitivity (robustness to noise, lower=better).<br>
+    <b>Advantages:</b> Scalable, component-isolating, standardized scale.<br>
+    <b>Limitations:</b> Judge noise, cost, self-bias risk.<br>
+    <b>Interview Trap:</b> Faithful ≠ Relevant ≠ Correct — they are three separate, orthogonal axes.<br>
+    <b>Most Important Fact:</b> Only Context Recall &amp; Noise Sensitivity require a Reference (ground truth); Faithfulness &amp; Response Relevance are reference-free.
+  </div>
+
+  <div class="footer-tag">RAGAS Cheat Sheet — Page 10 of 10 — Interview Q&amp;A, Pros/Cons &amp; 60-Second Recap</div>
+</div>
+
+</body>
+</html>
