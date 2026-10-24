@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>DeepEval — Internal Working &amp; Revision Cheat Sheet</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.min.js"></script>
+<style>
+  @page { size: A4; margin: 14mm 12mm; }
+  * { box-sizing: border-box; }
+  body {
+    font-family: 'Georgia', 'Times New Roman', serif;
+    color: #000;
+    background: #fff;
+    line-height: 1.32;
+    font-size: 11.3px;
+    margin: 0;
+    padding: 0;
+  }
+  .page {
+    page-break-after: always;
+    padding: 4px 2px;
+    min-height: 265mm;
+  }
+  .page:last-child { page-break-after: auto; }
+
+  h1.title {
+    text-align: center;
+    font-size: 22px;
+    letter-spacing: 1.5px;
+    border-bottom: 3px solid #000;
+    padding-bottom: 6px;
+    margin-bottom: 2px;
+    text-transform: uppercase;
+  }
+  .subtitle { text-align:center; font-size:11px; font-style:italic; margin-bottom:10px; }
+
+  h2 {
+    font-size: 14px;
+    text-transform: uppercase;
+    border-bottom: 2px solid #000;
+    padding-bottom: 3px;
+    margin: 14px 0 6px 0;
+    letter-spacing: 0.5px;
+  }
+  h3 {
+    font-size: 12.3px;
+    text-transform: none;
+    border-left: 4px solid #000;
+    padding-left: 6px;
+    margin: 10px 0 4px 0;
+    font-weight: bold;
+  }
+  p { margin: 3px 0; text-align: justify; }
+  ul, ol { margin: 3px 0 6px 16px; padding: 0; }
+  li { margin-bottom: 2px; }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 6px 0 10px 0;
+    font-size: 10.4px;
+  }
+  th, td {
+    border: 1px solid #000;
+    padding: 3.5px 5px;
+    text-align: left;
+    vertical-align: top;
+  }
+  th { background: #e8e8e8; font-weight: bold; text-transform: uppercase; font-size: 10px; }
+  tr:nth-child(even) td { background: #f5f5f5; }
+  code { font-family: 'Courier New', monospace; font-size: 10.2px; background:#eee; padding:0 2px; }
+
+  .formula-box {
+    border: 1.5px solid #000;
+    background: #f0f0f0;
+    padding: 8px 10px;
+    margin: 8px 0;
+    text-align: center;
+    font-size: 13px;
+  }
+  .formula-box .label { font-size: 10px; text-transform:uppercase; font-weight:bold; text-align:left; margin-bottom:3px; letter-spacing:0.5px; }
+  .var-key { font-size: 10px; text-align:left; margin-top:5px; border-top:1px dashed #000; padding-top:4px; }
+
+  .callout {
+    border: 1px solid #000;
+    padding: 6px 8px;
+    margin: 6px 0;
+    font-size: 10.5px;
+    background: #fafafa;
+  }
+  .callout .htag { font-weight:bold; text-transform:uppercase; font-size:9.5px; letter-spacing:0.5px; }
+
+  .mnemonic { font-style: italic; border: 1px dashed #000; padding: 4px 6px; margin: 5px 0; font-size: 10.3px; }
+
+  .footer-tag {
+    text-align:center; font-size:9px; border-top:1px solid #000; margin-top:10px; padding-top:3px;
+  }
+
+  .flow {
+    display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap;
+    border:1px solid #000; padding:8px; margin:6px 0; font-size:10.5px; text-align:center;
+  }
+  .flow .step { border:1px solid #000; padding:5px 8px; background:#eee; flex:1; margin:2px; min-width:80px; }
+  .flow .arrow { font-size:16px; padding:0 4px; }
+</style>
+</head>
+<body>
+
+<!-- ================= PAGE 1 ================= -->
+<div class="page">
+  <h1 class="title">DeepEval</h1>
+  <p class="subtitle">Internal Working, Synthesizer, Dataset Generation, Evaluation Pipeline &amp; Metric Mechanics — Updated Revision Sheet</p>
+
+  <h2>1. What is DeepEval? (Conceptual)</h2>
+  <p><b>DeepEval</b> is an open-source evaluation framework that applies the discipline of software testing to LLM applications. It behaves like a test harness — where each "test" is a structured record of an LLM interaction, and each "assertion" is a metric score compared against a threshold. But its true value lies in what happens internally: every metric is a small LLM-driven reasoning pipeline that decomposes natural-language output into verifiable units, judges them, and reports both a numeric score and an explanation.</p>
+  <ul>
+    <li><b>What it is:</b> A Python-native framework providing 50+ predefined metrics spanning RAG, agents, conversational systems, safety, and multimodal applications, plus tools to author fully custom evaluators.</li>
+    <li><b>Why it exists:</b> LLM outputs are non-deterministic and open-ended. Traditional assertions ("did this equal that exactly?") fail completely. DeepEval replaces them with rubric-based judgments that produce reproducible scores and pass/fail signals.</li>
+    <li><b>Problem it solves:</b> Teams need a repeatable, code-native, CI-gateable way to detect quality regressions before they reach users — covering correctness, faithfulness, relevance, safety, and agentic behaviour in one place.</li>
+    <li><b>Ecosystem relationship:</b> DeepEval (open-source) pairs with <b>Confident AI</b> (a commercial platform) for dashboards, team collaboration, and production monitoring — but the framework itself remains completely free.</li>
+  </ul>
+
+  <h2>2. Internal Architecture — The Layers</h2>
+  <p>Internally, DeepEval is organised into distinct layers, each with a clear responsibility. Understanding this layering removes the "black box" feeling when a score surprises you.</p>
+  <table>
+    <tr><th>Layer</th><th>Responsibility</th></tr>
+    <tr><td><b>Data Layer</b></td><td>Defines the shapes of evaluation records — test cases, goldens, conversational threads, and datasets. Holds the raw fields the metric will read.</td></tr>
+    <tr><td><b>Metric Layer</b></td><td>Contains the scoring logic. Each metric has two responsibilities: score a single test case, and explain the score.</td></tr>
+    <tr><td><b>Judge Layer</b></td><td>Wraps the LLM used as the evaluator. Handles prompt construction, model invocation, response parsing, and retry logic.</td></tr>
+    <tr><td><b>Reasoning Layer</b></td><td>The techniques that structure how the judge reasons — QAG, G-Eval, DAG. This determines how a natural-language rubric becomes a number.</td></tr>
+    <tr><td><b>Synthesizer Layer</b></td><td>Generates synthetic goldens and datasets from source documents or seed examples — building the benchmark before evaluation runs.</td></tr>
+    <tr><td><b>Orchestration Layer</b></td><td>Coordinates multi-step evaluation, batching, dataset iteration, concurrency, and result aggregation.</td></tr>
+    <tr><td><b>Reporting Layer</b></td><td>Produces structured reports, pass/fail summaries, and CI-usable output — including explanations per test case.</td></tr>
+  </table>
+
+  <div class="mnemonic">🧠 Memory Hook: "Synthesizer builds the exam; test cases are the questions; metrics are the graders; the judge does the reasoning; the orchestrator runs the class; the reporter publishes results."</div>
+
+  <h2>3. The Evaluation Pipeline — End-to-End Flow</h2>
+  <p>Every DeepEval evaluation — whether a single assertion or a thousand test cases — follows the same internal pipeline. Each stage transforms the data into something the next stage can consume.</p>
+  <div class="flow">
+    <div class="step">Synthesizer / Goldens</div><div class="arrow">→</div>
+    <div class="step">Test Cases</div><div class="arrow">→</div>
+    <div class="step">Metric Preprocessing</div><div class="arrow">→</div>
+    <div class="step">Judge Invocation</div><div class="arrow">→</div>
+    <div class="step">Score + Reason</div><div class="arrow">→</div>
+    <div class="step">Threshold Gate</div><div class="arrow">→</div>
+    <div class="step">Report</div>
+  </div>
+  <ol>
+    <li><b>Dataset formation (optional):</b> If you do not already have goldens, the Synthesizer builds them from source documents or seed examples.</li>
+    <li><b>Test case construction:</b> For each golden, run your application to capture the actual output (or pass through the golden's expected output as a baseline check). This produces a test case per interaction.</li>
+    <li><b>Metric preprocessing:</b> The metric reformats the test case into the shape its reasoning technique expects — claims are extracted, questions generated, or decision graphs prepared.</li>
+    <li><b>Judge invocation:</b> The framework constructs a prompt from the metric's internal template plus preprocessed data, sends it to the configured LLM judge, and waits for a structured response.</li>
+    <li><b>Response parsing:</b> The judge returns a structured payload — typically a machine-readable list of judgments. If parsing fails, a retry is triggered up to a configured limit.</li>
+    <li><b>Score computation:</b> Parsed judgments are aggregated into a numeric score in [0, 1] using the metric's specific formula.</li>
+    <li><b>Reason extraction:</b> Alongside the score, the metric captures a natural-language explanation describing which claims passed or failed and on what grounds.</li>
+    <li><b>Threshold check:</b> The score is compared against the metric's threshold (or its maximum, for reverse-scaled metrics like Hallucination). The pair is marked pass or fail.</li>
+    <li><b>Aggregation and reporting:</b> Scores are aggregated across the dataset — mean, pass rate, worst performers — and emitted as a structured report usable in CI.</li>
+  </ol>
+
+  <div class="callout"><span class="htag">Key Internals:</span> DeepEval's metrics are <b>self-explaining by design</b> — every metric returns both a score and a reason. This is not a cosmetic feature; it is a first-class part of the framework's contract, making scores auditable and debuggable rather than opaque numbers.</div>
+
+  <div class="footer-tag">DeepEval Cheat Sheet — Page 1 of 8 — Architecture &amp; Evaluation Pipeline</div>
+</div>
+
+
+<!-- ================= PAGE 2 ================= -->
+<div class="page">
+  <h2>4. Data Structures — How Records Are Shaped Internally</h2>
+  <p>Before any metric runs, the input data is packed into a standard record shape. All metrics read from this same structure, which is why any metric can be swapped for any other without changing your data preparation.</p>
+  <table>
+    <tr><th>Field</th><th>Purpose</th><th>Used By</th></tr>
+    <tr><td><b>input</b></td><td>The user's query or prompt for a single interaction.</td><td>Nearly all metrics</td></tr>
+    <tr><td><b>actual_output</b></td><td>The LLM's generated response — the thing being evaluated.</td><td>Nearly all metrics</td></tr>
+    <tr><td><b>expected_output</b></td><td>Reference answer — the ideal or ground-truth response.</td><td>Correctness, context recall, comparison metrics</td></tr>
+    <tr><td><b>retrieval_context</b></td><td>Chunks the retriever actually fetched for this query.</td><td>Faithfulness, answer relevancy, contextual metrics</td></tr>
+    <tr><td><b>context</b></td><td>Curated, trusted reference material — fixed ground truth.</td><td>Hallucination, bias (as reference)</td></tr>
+    <tr><td><b>tools_called</b></td><td>The ordered list of tools the agent actually invoked.</td><td>Tool correctness, task completion</td></tr>
+    <tr><td><b>expected_tools</b></td><td>The tools that were expected to be called for the task.</td><td>Tool correctness</td></tr>
+  </table>
+  <div class="callout"><span class="htag">Internal Rule:</span> Each metric declares which fields it requires. If a required field is missing or None, the metric raises a configuration error immediately — before any LLM call is wasted. This is why correct field population is the first thing to check when a metric "isn't working."</div>
+
+  <h2>5. The Three Internal Reasoning Techniques</h2>
+  <p>Almost every predefined metric is a thin wrapper around one of three reasoning techniques. These techniques determine <i>how</i> the LLM judge turns natural language into a score.</p>
+  <table>
+    <tr><th>Technique</th><th>Internal Mechanism</th><th>Numeric Output</th><th>Best For</th></tr>
+    <tr><td><b>QAG</b></td><td>Decompose output into atomic units → generate yes/no judgments → count favourable answers</td><td>Ratio of favourable to total</td><td>Objective, countable properties (faithfulness, relevancy)</td></tr>
+    <tr><td><b>G-Eval</b></td><td>Rubric → chain-of-thought steps → score via weighted token probabilities</td><td>Weighted sum across rating scale</td><td>Subjective, custom criteria (tone, coherence)</td></tr>
+    <tr><td><b>DAG</b></td><td>Traverse a hand-built decision graph — one focused judgment per node, explicit branching</td><td>Aggregated pass/fail through graph</td><td>Regulated, high-stakes, auditable evaluation</td></tr>
+  </table>
+  <div class="mnemonic">🧠 Memory Hook: "QAG counts, G-Eval judges, DAG decides." QAG is mechanical; G-Eval reasons; DAG is procedural.</div>
+
+  <h2>6. QAG — Question-Answer Generation (Internal Walkthrough)</h2>
+  <p>QAG is DeepEval's workhorse technique. It powers faithfulness, answer relevancy, hallucination, and many retrieval-side metrics. Internally, QAG proceeds in four deterministic stages:</p>
+  <ol>
+    <li><b>Decomposition stage:</b> The LLM breaks the target text into <b>atomic units</b> — individual, independently verifiable claims or statements. A single sentence like "Paris is the capital of France and was founded in 250 BC" produces two atomic claims.</li>
+    <li><b>Question generation stage:</b> For each atomic unit, the LLM frames a close-ended (yes/no) question designed to test whether that unit holds — answerable strictly from a designated reference source.</li>
+    <li><b>Answering stage:</b> The LLM answers each question using only the designated reference as ground truth. The answer is binary yes/no — no partial credit, no hedging.</li>
+    <li><b>Aggregation stage:</b> The metric computes the ratio of favourable answers to total answers. That ratio becomes the score.</li>
+  </ol>
+  <div class="formula-box">
+    <div class="label">Generic QAG Aggregation</div>
+    $$ \text{Score} = \frac{\text{Favourable Judgments}}{\text{Total Judgments}} $$
+    <div class="var-key">
+      <b>Favourable</b> = the specific pass condition for this metric<br>
+      <b>Total Judgments</b> = count of atomic units extracted
+    </div>
+  </div>
+
+  <h2>7. G-Eval — Internal Walkthrough</h2>
+  <p>G-Eval (from Liu et al., 2023) solves a different problem than QAG. QAG is great for objective checks, but subjective qualities like "tone" cannot be decomposed into countable atoms.</p>
+  <ol>
+    <li><b>Criteria ingestion:</b> The user supplies a plain-language description of "good" for this metric.</li>
+    <li><b>Auto-generation of evaluation steps:</b> The judge LLM first generates its own chain-of-thought steps from the criteria — this is what makes G-Eval more stable than naive prompting.</li>
+    <li><b>Step-by-step application:</b> The LLM walks through its own generated steps against the test case.</li>
+    <li><b>Score via token probabilities:</b> Rather than asking for a single integer, G-Eval computes a probability-weighted score across a rating scale using the model's own output token probabilities.</li>
+  </ol>
+  <div class="formula-box">
+    <div class="label">G-Eval — Probability-Weighted Score</div>
+    $$ \text{Score} = \sum_{s=1}^{N} s \cdot \frac{p(s)}{\sum_{k=1}^{N} p(k)} $$
+    <div class="var-key">
+      <b>s</b> = rating value on the scale<br>
+      <b>p(s)</b> = LLM output probability for rating token s<br>
+      <b>Result</b> = smooth score instead of a hard single-token pick
+    </div>
+  </div>
+
+  <h2>8. DAG — Internal Walkthrough</h2>
+  <p>DAG (Deep Acyclic Graph) splits a complex rubric into a graph of single-purpose decisions with explicit branching logic — trading setup effort for determinism and auditability.</p>
+  <ol>
+    <li><b>Graph construction (by the user):</b> Define a directed acyclic graph where each node is one focused judgment.</li>
+    <li><b>Entry point:</b> Evaluation begins at a root node with a single, narrowly scoped question.</li>
+    <li><b>Branch selection:</b> Based on the LLM's judgment, follow a deterministic edge to the next node.</li>
+    <li><b>Terminal nodes:</b> Leaf nodes terminate with a pass, fail, or specific label. Score is a deterministic aggregation of the path taken.</li>
+  </ol>
+
+  <div class="footer-tag">DeepEval Cheat Sheet — Page 2 of 8 — Data Structures &amp; Reasoning Techniques</div>
+</div>
+
+
+<!-- ================= PAGE 3 — SYNTHESIZER DEEP DIVE ================= -->
+<div class="page">
+  <h2>9. The Synthesizer — Dedicated Deep Dive</h2>
+  <p>The <b>Synthesizer</b> is DeepEval's dataset-construction engine. It is the component that turns raw source material (or a small seed set) into a fully-formed evaluation benchmark of Goldens. It is what makes DeepEval usable in projects where no curated test set exists yet — a very common situation for new LLM applications.</p>
+  <p>Internally, the Synthesizer is not a single LLM call. It is a multi-stage pipeline with its own internal reasoning steps, filtering passes, and quality guards. Understanding this pipeline is essential for judging whether a synthesized dataset is trustworthy enough to gate a deployment.</p>
+
+  <h3>9.1 Why the Synthesizer Exists</h3>
+  <ul>
+    <li><b>Manual dataset creation is expensive:</b> Writing hundreds of (input, expected_output, context) triples by hand is slow, error-prone, and requires domain expertise per example.</li>
+    <li><b>Golden datasets age quickly:</b> As source documents change, the corresponding goldens must be refreshed. Regeneration by hand is impractical at scale.</li>
+    <li><b>Coverage is hard to guarantee manually:</b> Humans tend to write similar examples in similar phrasings. A Synthesizer can deliberately vary phrasing, difficulty, and topic coverage.</li>
+    <li><b>RAG and agent systems need context-anchored examples:</b> Goldens must reference the same documents the retriever will actually see at inference time — the Synthesizer guarantees this by anchoring every example to source chunks.</li>
+  </ul>
+
+  <h3>9.2 The Three Synthesis Modes (End-to-End)</h3>
+  <table>
+    <tr><th>Mode</th><th>Input</th><th>Internal Process</th><th>Output</th></tr>
+    <tr><td><b>From Documents</b> (synthetic generation)</td><td>One or more source documents (PDFs, text, web pages)</td><td>Chunk → per-chunk question generation → per-question answer generation → optional filtering</td><td>Fully synthetic goldens with reference contexts</td></tr>
+    <tr><td><b>From Existing Goldens</b> (evolution)</td><td>A small seed set of hand-written goldens</td><td>Analyse seed examples → generate variations (rephrasings, complexity shifts, edge cases)</td><td>Expanded dataset preserving the seed style</td></tr>
+    <tr><td><b>From Scratch</b> (fully synthetic)</td><td>A scenario or theme description</td><td>LLM generates both inputs and expected outputs from the theme alone</td><td>Weakest form — no external ground truth anchor</td></tr>
+  </table>
+
+  <h3>9.3 End-to-End Synthesizer Pipeline (From Documents)</h3>
+  <div class="flow">
+    <div class="step">Ingest</div><div class="arrow">→</div>
+    <div class="step">Chunk</div><div class="arrow">→</div>
+    <div class="step">Extract Facts</div><div class="arrow">→</div>
+    <div class="step">Generate Questions</div><div class="arrow">→</div>
+    <div class="step">Generate Answers</div><div class="arrow">→</div>
+    <div class="step">Attach Context</div><div class="arrow">→</div>
+    <div class="step">Filter</div><div class="arrow">→</div>
+    <div class="step">Persist Goldens</div>
+  </div>
+
+  <ol>
+    <li><b>Ingestion stage:</b> The Synthesizer loads source documents using DeepEval's document loaders, which parse PDFs, text files, and web pages into raw text plus metadata.</li>
+    <li><b>Chunking stage:</b> The document is split into overlapping passages. Chunk size and overlap are configurable. Each chunk must be self-contained enough to answer a question on its own — the Synthesizer deliberately keeps chunks semantically tight so generated questions do not require cross-chunk reasoning.</li>
+    <li><b>Fact extraction stage (optional):</b> Some Synthesizer configurations first extract key facts or themes from each chunk, ensuring generated questions are anchored to concrete, verifiable content rather than vague impressions of the passage.</li>
+    <li><b>Question generation stage:</b> For each chunk, the LLM generates one or more candidate questions whose answers are derivable from that chunk alone. The Synthesizer controls quantity, difficulty, and style through configuration — for example, asking for factual questions versus reasoning questions.</li>
+    <li><b>Answer generation stage:</b> For each generated question, the LLM produces the ideal answer strictly from the chunk. Because the answer is generated from the same chunk that will be recorded as reference context, the golden is internally consistent by construction.</li>
+    <li><b>Context attachment stage:</b> The chunk that produced the question-answer pair is attached to the golden as its reference context. This is the anchor that makes the golden useful for RAG evaluation — the metric can compare generated answers against the same context a real retriever would have supplied.</li>
+    <li><b>Filtering stage:</b> The Synthesizer applies quality filters. Questions that are too vague, too similar to already-generated examples, or whose answers cannot be verified against the chunk are dropped. This improves the discriminative power of the final dataset — a smaller, cleaner set is better than a larger, noisier one.</li>
+    <li><b>Persistence stage:</b> The surviving triples — (input, expected_output, reference_context) — are stored as goldens in a dataset, ready to be evaluated against the application.</li>
+  </ol>
+
+  <div class="callout"><span class="htag">Internal Quality Guard:</span> The Synthesizer's filtering stage is what separates a usable dataset from a noisy one. Without filtering, LLM-generated questions often cluster in the same style, cover the same few facts repeatedly, and produce answers that leak beyond the source chunk. The filter is the safety net that keeps the dataset well-formed.</div>
+
+  <div class="footer-tag">DeepEval Cheat Sheet — Page 3 of 8 — Synthesizer Internal Working (Part 1)</div>
+</div>
+
+
+<!-- ================= PAGE 4 — SYNTHESIZER CONTINUED ================= -->
+<div class="page">
+  <h2>9.4 Internal Components of the Synthesizer</h2>
+  <p>Internally, the Synthesizer is composed of several cooperating sub-components. Each one has a narrow job, and together they build a dataset that is both high-coverage and high-fidelity to the source material.</p>
+  <table>
+    <tr><th>Sub-Component</th><th>Job</th></tr>
+    <tr><td><b>Document Loader</b></td><td>Parses PDFs, text, and web pages into raw text plus metadata such as source filename or page.</td></tr>
+    <tr><td><b>Chunker</b></td><td>Splits long documents into overlapping passages sized to fit comfortably in the judge LLM's context window.</td></tr>
+    <tr><td><b>Fact Extractor</b></td><td>Pulls out concrete, verifiable facts per chunk so that generated questions are anchored to real content.</td></tr>
+    <tr><td><b>Question Generator</b></td><td>Produces close-ended or open-ended questions whose answers live entirely within a single chunk.</td></tr>
+    <tr><td><b>Answer Generator</b></td><td>Produces the ideal answer using only the same chunk as reference — guaranteeing the golden is internally consistent.</td></tr>
+    <tr><td><b>Evolver</b></td><td>Optionally transforms a golden into harder variants — reasoning-heavy, multi-step, or adversarially worded — to raise dataset difficulty.</td></tr>
+    <tr><td><b>Filter / Deduplicator</b></td><td>Drops near-duplicates, ambiguous questions, and unverifiable answers to keep the dataset clean.</td></tr>
+  </table>
+
+  <h2>9.5 Evolver — How Difficulty Is Raised Internally</h2>
+  <p>The Synthesizer's Evolver step is one of the most distinctive parts of the internal pipeline. Rather than generating all questions at the same difficulty level, the Evolver takes a base golden and transforms it into harder variants:</p>
+  <ul>
+    <li><b>Reasoning evolution:</b> Convert a factual question into one that requires combining facts or performing inference.</li>
+    <li><b>Multi-context evolution:</b> Rewrite a single-chunk question so its answer requires synthesising multiple chunks.</li>
+    <li><b>Conditional evolution:</b> Add constraints to the question so that the correct answer depends on satisfying a condition.</li>
+    <li><b>Distractor evolution:</b> Introduce plausible but incorrect alternative answers so the model must discriminate, not just recognise.</li>
+  </ul>
+  <p>Evolved goldens stress-test the application harder than base goldens — a system that performs well on both has strong coverage across difficulty levels.</p>
+
+  <h2>9.6 Golden Formation — Internal Quality Principles</h2>
+  <ul>
+    <li><b>Anchoring principle:</b> Every golden's expected output is anchored to a specific reference context. Change the source document and the golden must be regenerated or it becomes stale.</li>
+    <li><b>Self-consistency principle:</b> Because the answer is generated from the same chunk that is stored as context, the golden is internally consistent by construction — no accidental mismatch.</li>
+    <li><b>Coverage principle:</b> The Synthesizer aims to cover the source's key facts and themes rather than sampling randomly. Coverage is a configuration knob, not an accident.</li>
+    <li><b>Diversity principle:</b> Question phrasings and styles are deliberately varied to prevent the dataset from being biased toward a single template.</li>
+    <li><b>Filtering principle:</b> Quality filtering is a first-class stage, not an afterthought. A clean small dataset beats a noisy large one for regression detection.</li>
+  </ul>
+
+  <div class="callout"><span class="htag">Key Internal Insight:</span> A synthesized golden is really a mini-review of the source chunk. The chunk posed the question implicitly; the Synthesizer made it explicit; the answer is what a careful reader would say. This is why synthesized datasets are surprisingly robust — the ground truth is not invented, it is extracted.</div>
+
+  <h2>9.7 Dataset Formation — From Goldens to a Runnable Benchmark</h2>
+  <p>Goldens alone are not a dataset. Dataset formation is the step that turns a pile of goldens into a runnable benchmark by attaching the context required to evaluate the application against them.</p>
+  <ol>
+    <li><b>Golden collection:</b> All goldens produced by the Synthesizer are gathered into a single store.</li>
+    <li><b>Deduplication:</b> Near-identical goldens are collapsed to avoid inflating scores with repeated examples.</li>
+    <li><b>Field completion:</b> Fields required by the chosen metrics are populated — input, expected_output, and reference_context are always set; others as needed.</li>
+    <li><b>Optional partitioning:</b> Some workflows split goldens into training/validation/test partitions, though for evaluation most teams keep a single fixed test set that is reused every run.</li>
+    <li><b>Version anchoring:</b> The dataset is tied to a specific source-document version. When sources change, the dataset is versioned accordingly, so regressions can be attributed correctly.</li>
+  </ol>
+
+  <div class="callout"><span class="htag">Why versioning matters:</span> If you change the source documents but do not regenerate the goldens, metrics that compare against expected_output will show degraded scores for reasons unrelated to your application. Always version goldens alongside their source material.</div>
+
+  <div class="footer-tag">DeepEval Cheat Sheet — Page 4 of 8 — Synthesizer Internal Working (Part 2)</div>
+</div>
+
+
+<!-- ================= PAGE 5 — EVALUATION END TO END ================= -->
+<div class="page">
+  <h2>10. How Evaluation Is Done Using DeepEval — End to End</h2>
+  <p>This section walks through the full evaluation workflow — from the moment you have an application to the moment you have a pass/fail signal you can act on. It connects every earlier concept: goldens, test cases, metrics, the judge, and thresholds.</p>
+
+  <h3>10.1 Phase 1 — Prepare the Benchmark</h3>
+  <ol>
+    <li><b>Decide what to evaluate:</b> Identify the properties that matter for your application — correctness, faithfulness, safety, agentic behaviour, or a mix.</li>
+    <li><b>Choose metrics:</b> Select the specific metrics whose failure modes would indicate a real problem. Avoid selecting every metric "just in case" — each metric adds a judge call, latency, and its own noise.</li>
+    <li><b>Build or synthesize the dataset:</b> If you have goldens, load them. If not, run the Synthesizer over source documents to create them. In either case, verify the dataset is well-formed — every golden must have input, expected_output, and reference_context populated.</li>
+  </ol>
+
+  <h3>10.2 Phase 2 — Produce Test Cases</h3>
+  <ol>
+    <li><b>Run the application on each golden's input:</b> The application under test — a RAG pipeline, an agent, a chatbot — receives each golden's input and produces its actual output, retrieved context, and (for agents) the tools called.</li>
+    <li><b>Package the results into test cases:</b> Each application run becomes a test case carrying the golden's expected fields alongside the application's actual fields. This is what metrics will consume.</li>
+    <li><b>Optionally check reference baseline:</b> Running the metrics against the golden's own expected_output as the actual_output produces a ceiling score — the maximum the metrics can award. Comparing the ceiling to the application's score tells you how much headroom exists.</li>
+  </ol>
+
+  <h3>10.3 Phase 3 — Execute the Metrics</h3>
+  <ol>
+    <li><b>Select judge model:</b> The judge model is the LLM that will be invoked internally by every LLM-based metric. Choose one that is at least as capable as the model under test.</li>
+    <li><b>Run each metric against each test case:</b> For each (test case, metric) pair, the metric executes its internal pipeline — preprocessing, judge invocation, parsing, scoring, reason extraction.</li>
+    <li><b>Handle retries:</b> If the judge returns a malformed response, the metric retries up to a configured limit. If retries are exhausted, the metric records a failure with a diagnostic reason — not a silent zero.</li>
+    <li><b>Record self-explanation:</b> Alongside the numeric score, the metric's natural-language reason is stored. This is used later when you inspect which specific claims failed and why.</li>
+  </ol>
+
+  <h3>10.4 Phase 4 — Aggregate and Gate</h3>
+  <ol>
+    <li><b>Compare scores to thresholds:</b> Each (test case, metric) pair's score is compared to the metric's threshold. Pairs below threshold (or above, for reverse-scaled metrics) are marked as failures.</li>
+    <li><b>Aggregate across the dataset:</b> Per-metric aggregates are computed — mean score, median score, pass rate, and worst-performing cases. These give you the shape of the evaluation, not just a single number.</li>
+    <li><b>Identify failure clusters:</b> Failing cases are inspected in groups. Patterns often emerge — for example, all Faithfulness failures involve claims about a specific document section, or all Answer Relevancy failures involve a particular type of query.</li>
+    <li><b>Gate the deployment:</b> In CI, a suite that fails its gate blocks the build. In local runs, the gate is a signal for whether to iterate before shipping.</li>
+  </ol>
+
+  <h3>10.5 Phase 5 — Iterate and Track</h3>
+  <ol>
+    <li><b>Fix root causes:</b> Use the failure clusters to trace back to the underlying cause — a retriever issue, a prompt issue, a chunking issue, or an LLM capability issue.</li>
+    <li><b>Re-run against the same dataset:</b> Because the dataset is fixed and versioned, comparisons across iterations are meaningful. Score changes reflect actual application changes, not test-set changes.</li>
+    <li><b>Expand the dataset as you learn:</b> Whenever you fix a real failure, add a golden covering that failure mode. The dataset becomes an institutional memory of everything the application has ever broken.</li>
+    <li><b>Track trends:</b> Over time, aggregate scores trend either upward (healthy iteration) or downward (accruing regression). Trends are the earliest signal of a problem, well before users notice.</li>
+  </ol>
+
+  <div class="mnemonic">🧠 Memory Hook: Benchmark → Test Cases → Metrics → Judge → Score + Reason → Threshold → Report → Fix → Repeat. This loop never ends — it is the heartbeat of a production LLM application.</div>
+
+  <div class="footer-tag">DeepEval Cheat Sheet — Page 5 of 8 — Evaluation End to End</div>
+</div>
+
+
+<!-- ================= PAGE 6 ================= -->
+<div class="page">
+  <h2>11. RAG Metrics — Internal Mechanics</h2>
+
+  <h3>11.1 Faithfulness</h3>
+  <p><b>Internal pattern:</b> QAG with a contradiction test against <code>retrieval_context</code>. The metric decomposes <code>actual_output</code> into atomic claims, then asks whether each claim contradicts anything in the retrieved context. A claim that neither appears in nor contradicts the context is scored as truthful — the failure condition is active contradiction, not mere silence.</p>
+  <div class="formula-box">
+    <div class="label">Faithfulness — Internal Ratio</div>
+    $$ \text{Faithfulness} = \frac{\text{Claims NOT Contradicting Context}}{\text{Total Claims Extracted}} $$
+    <div class="var-key">
+      <b>Claims</b> = atomic units extracted from <code>actual_output</code><br>
+      <b>Truthful</b> = claim does not contradict anything in <code>retrieval_context</code><br>
+      <b>Higher is better</b> — 1.0 means every claim is consistent
+    </div>
+  </div>
+
+  <h3>11.2 Answer Relevancy</h3>
+  <p><b>Internal pattern:</b> QAG with a relevance test. Decomposes <code>actual_output</code> into statements, then asks whether each statement addresses the <code>input</code>. Off-topic padding lowers the score.</p>
+  <div class="formula-box">
+    <div class="label">Answer Relevancy — Internal Ratio</div>
+    $$ \text{Answer Relevancy} = \frac{\text{Relevant Statements}}{\text{Total Statements}} $$
+  </div>
+
+  <h3>11.3 Hallucination — The Reverse-Scaled Metric</h3>
+  <p><b>Internal pattern:</b> QAG with a contradiction test against a <b>curated context</b>, not the retriever's output. This metric is phrased as an error rate, so lower is better.</p>
+  <div class="formula-box">
+    <div class="label">Hallucination — Internal Ratio</div>
+    $$ \text{Hallucination} = \frac{\text{Contexts Contradicted}}{\text{Total Contexts}} $$
+    <div class="var-key">
+      <b>Lower is better</b> — 0 = no contradictions (best possible)<br>
+      <b>Threshold here is a MAXIMUM</b>, not a minimum<br>
+      <b>Context field</b> = curated reference material, NOT <code>retrieval_context</code>
+    </div>
+  </div>
+
+  <div class="callout"><span class="htag">Faithfulness vs Hallucination Internally:</span> Both use QAG with contradiction checking, but they read different fields. Faithfulness reads <code>retrieval_context</code> (the retriever's live output). Hallucination reads <code>context</code> (a curated reference). Use Faithfulness for live RAG; use Hallucination for a fixed reference document.</div>
+
+  <h3>11.4 Contextual Precision, Recall, and Relevancy (Retriever-Side)</h3>
+  <table>
+    <tr><th>Metric</th><th>Internal Question It Asks</th><th>Fields Read</th></tr>
+    <tr><td>Contextual Precision</td><td>Are relevant chunks ranked above irrelevant ones?</td><td>input, retrieval_context, expected_output</td></tr>
+    <tr><td>Contextual Recall</td><td>Do retrieved chunks contain everything needed to produce the expected output?</td><td>input, retrieval_context, expected_output</td></tr>
+    <tr><td>Contextual Relevancy</td><td>Is the retrieved context on-topic for the input, regardless of rank?</td><td>input, retrieval_context</td></tr>
+  </table>
+
+  <h3>11.5 Summarization — The Min-of-Two Score</h3>
+  <p><b>Internal pattern:</b> Two QAG sub-evaluations combined via minimum. The metric computes an alignment score (is the summary faithful to the source?) and an inclusion score (does the summary cover the source's key facts?). Final score is the smaller — the summary must excel at both to score high.</p>
+  <div class="formula-box">
+    <div class="label">Summarization — Internal Combination</div>
+    $$ \text{Summarization} = \min(\text{Alignment}, \text{Inclusion}) $$
+    <div class="var-key">
+      <b>Alignment</b> = fraction of summary claims supported by source<br>
+      <b>Inclusion</b> = fraction of source facts present in summary
+    </div>
+  </div>
+
+  <h2>12. Agentic Metrics — Internal Mechanics</h2>
+  <table>
+    <tr><th>Metric</th><th>Internal Pattern</th><th>Deterministic?</th><th>What It Catches</th></tr>
+    <tr><td><b>Tool Correctness</b></td><td>Direct comparison of tools called vs expected — no LLM judge</td><td>Yes</td><td>Wrong tool selection or ordering</td></tr>
+    <tr><td><b>Task Completion</b></td><td>LLM judge reviews the full action trace and decides whether the goal was achieved</td><td>No</td><td>Right tools, wrong outcome</td></tr>
+  </table>
+
+  <div class="footer-tag">DeepEval Cheat Sheet — Page 6 of 8 — RAG &amp; Agentic Metric Internals</div>
+</div>
+
+
+<!-- ================= PAGE 7 ================= -->
+<div class="page">
+  <h2>13. Conversational Metrics — Internal Mechanics</h2>
+  <p>Conversational metrics operate over a whole thread of turns rather than a single interaction. Internally, the metric receives the sequence of turns as a single unit and judges properties that only make sense across the whole conversation.</p>
+  <table>
+    <tr><th>Metric</th><th>What It Internally Judges</th></tr>
+    <tr><td>Conversation Completeness</td><td>Across the full thread, did the assistant satisfy every user request raised so far?</td></tr>
+    <tr><td>Conversation Relevancy</td><td>Given the accumulated context up to each turn, was the reply on-topic at that moment?</td></tr>
+    <tr><td>Knowledge Retention</td><td>Does the assistant carry forward and correctly reuse facts stated earlier in the thread?</td></tr>
+    <tr><td>Role Adherence</td><td>Does the assistant stay within its assigned persona across all turns without drifting?</td></tr>
+  </table>
+
+  <h2>14. Safety / Red-Teaming Metrics — Internal Mechanics</h2>
+  <p>Safety metrics judge the output against predefined harm categories. Internally, most of these are G-Eval-based — the judge receives a rubric describing the harm category and scores the output's alignment with that rubric.</p>
+  <table>
+    <tr><th>Metric</th><th>What It Internally Judges</th></tr>
+    <tr><td>Bias</td><td>Presence of biased language, stereotyping, or unfair generalisations</td></tr>
+    <tr><td>Toxicity</td><td>Presence of toxic, offensive, or hateful content</td></tr>
+    <tr><td>Prompt Alignment</td><td>Whether the output followed the explicit instructions given in the prompt</td></tr>
+    <tr><td>Red-Teaming Vulnerabilities</td><td>Resistance to jailbreaks, prompt injection, and data leakage — tested with adversarial inputs</td></tr>
+  </table>
+
+  <h2>15. Custom Metrics — Three Internal Approaches</h2>
+  <table>
+    <tr><th>Approach</th><th>Internal Mechanism</th><th>Use When</th></tr>
+    <tr><td><b>G-Eval based</b></td><td>Rubric string; LLM reasons freely with self-generated CoT steps and probability-weighted scoring</td><td>Subjective criteria (tone, brand voice, domain-specific helpfulness)</td></tr>
+    <tr><td><b>DAG based</b></td><td>Decision graph; each node is a focused LLM judgment with explicit branching</td><td>Regulated or high-stakes evaluation requiring deterministic logic</td></tr>
+    <tr><td><b>Fully self-coded</b></td><td>Pure Python computation — no LLM judge involved</td><td>Classical metrics (BLEU, ROUGE) or deterministic business rules</td></tr>
+  </table>
+  <div class="callout"><span class="htag">Best Practice (per DeepEval's own guidance):</span> Cap generic/built-in metrics per system at roughly three, and add only one or two custom G-Eval metrics per specific use case. Metric sprawl dilutes signal and slows iteration.</div>
+
+  <h2>16. DeepEval vs RAGAS — Internal Comparison</h2>
+  <table>
+    <tr><th>Aspect</th><th>DeepEval</th><th>RAGAS</th></tr>
+    <tr><td>Internal metaphor</td><td>Test framework — test cases, assertions, thresholds, CI gating</td><td>Evaluation report — score suite for RAG pipelines</td></tr>
+    <tr><td>Scope</td><td>RAG + agents + conversational + safety + multimodal</td><td>Primarily RAG-focused (retrieval + generation)</td></tr>
+    <tr><td>Faithfulness internals</td><td>Contradiction-based — a claim fails only if it contradicts context</td><td>Entailment-based — a claim must be inferable from context</td></tr>
+    <tr><td>Custom metric frameworks</td><td>Two — G-Eval and DAG</td><td>Less emphasis on user-authored frameworks</td></tr>
+    <tr><td>Agent evaluation</td><td>Native trajectory + outcome metrics</td><td>Not a core focus</td></tr>
+    <tr><td>Dataset synthesis</td><td>Built-in Synthesizer with evolver and filtering</td><td>Also offers synthetic test set generation</td></tr>
+    <tr><td>Testing integration</td><td>Deep Pytest integration — assertions, CI, gating</td><td>Typically standalone scripts/notebooks</td></tr>
+    <tr><td>Enterprise platform</td><td>Confident AI (separate commercial platform)</td><td>No equivalent first-party paid platform</td></tr>
+  </table>
+
+  <div class="footer-tag">DeepEval Cheat Sheet — Page 7 of 8 — Conversational, Safety &amp; Custom Metrics</div>
+</div>
+
+
+<!-- ================= PAGE 8 ================= -->
+<div class="page">
+  <h2>17. Common Mistakes (Internally Grounded)</h2>
+  <table>
+    <tr><th>❌ Wrong Belief</th><th>✅ Correct Understanding</th></tr>
+    <tr><td>G-Eval is a competing framework to DeepEval.</td><td>G-Eval is one internal reasoning technique that powers certain metrics inside DeepEval.</td></tr>
+    <tr><td>Hallucination and Faithfulness are interchangeable.</td><td>They read different fields and answer different questions. Faithfulness reads the retriever's live output; Hallucination reads a curated reference.</td></tr>
+    <tr><td>All metrics are scored 0–1 where higher is better.</td><td>Hallucination is the exception — an error rate where lower is better. Threshold acts as a maximum.</td></tr>
+    <tr><td>More metrics per system always improves evaluation.</td><td>DeepEval's own guidance recommends a small number of high-signal metrics.</td></tr>
+    <tr><td>G-Eval and DAG are interchangeable custom-metric choices.</td><td>G-Eval optimizes for speed and subjective judgment; DAG optimizes for determinism and auditability.</td></tr>
+    <tr><td>Synthetic goldens never need regeneration.</td><td>Goldens are anchored to their source documents. If sources change, goldens must be regenerated.</td></tr>
+    <tr><td>Synthesizer output is always clean and balanced.</td><td>The Synthesizer's filtering and evolver stages are what keep it clean. Without them, synthesized datasets cluster in style and repeat facts.</td></tr>
+    <tr><td>The judge model choice does not matter.</td><td>A weak judge produces unreliable scores. Prefer a judge at least as capable as the model under test.</td></tr>
+  </table>
+
+  <h2>18. Exam Cram Facts</h2>
+  <ul>
+    <li>DeepEval internally layers into data, metric, judge, reasoning, synthesizer, orchestration, and reporting.</li>
+    <li>Three internal reasoning techniques power almost all metrics: QAG (ratio of countable judgments), G-Eval (rubric + CoT + token-probability weighting), DAG (deterministic decision graph).</li>
+    <li>QAG has four stages: decomposition → question generation → answering → aggregation into a ratio.</li>
+    <li>G-Eval scores via a probability-weighted sum across a rating scale — reduces variance.</li>
+    <li>DAG forces multi-condition rubrics into a graph of single-purpose decisions with explicit branching.</li>
+    <li>Synthesizer has three modes: from documents, from existing goldens, from scratch.</li>
+    <li>Synthesizer pipeline: Ingest → Chunk → Extract Facts → Generate Questions → Generate Answers → Attach Context → Filter → Persist.</li>
+    <li>Synthesizer's Evolver raises difficulty via reasoning, multi-context, conditional, and distractor evolutions.</li>
+    <li>Every golden is anchored to a reference context. Change sources → regenerate goldens.</li>
+    <li>Evaluation phases: Prepare benchmark → Produce test cases → Execute metrics → Aggregate and gate → Iterate and track.</li>
+    <li>Faithfulness = QAG contradiction test against retrieval_context (higher better).</li>
+    <li>Answer Relevancy = QAG relevance test against input.</li>
+    <li>Hallucination = QAG contradiction test against curated context — reverse-scaled (lower better).</li>
+    <li>Summarization = min(alignment, inclusion) — must be faithful AND comprehensive.</li>
+    <li>Tool Correctness = deterministic comparison; Task Completion = LLM-judged outcome.</li>
+    <li>Every metric is self-explaining — always returns a score AND a reason.</li>
+  </ul>
+
+  <h2>19. High-Frequency Interview Questions</h2>
+  <table>
+    <tr><th>#</th><th>Question</th><th>Concise Answer</th></tr>
+    <tr><td>1</td><td>What is DeepEval in one sentence?</td><td>An open-source, Pytest-style framework for testing LLM applications using LLM-as-a-judge metrics with pass/fail thresholds.</td></tr>
+    <tr><td>2</td><td>How does the Synthesizer generate a dataset end-to-end?</td><td>Ingest documents → chunk passages → extract facts → generate questions per chunk → generate answers from the same chunk → attach the chunk as reference context → filter weak or duplicate examples → persist as goldens.</td></tr>
+    <tr><td>3</td><td>What are the three Synthesizer modes?</td><td>From documents (synthetic generation), from existing goldens (evolution of seed set), and from scratch (fully synthetic, weakest).</td></tr>
+    <tr><td>4</td><td>What is the role of the Evolver in the Synthesizer?</td><td>It transforms base goldens into harder variants — reasoning-heavy, multi-context, conditional, or distractor-based — to raise the discriminative power of the dataset.</td></tr>
+    <tr><td>5</td><td>Why is anchoring important in golden formation?</td><td>Every golden's expected output is tied to a specific reference context. If the source changes and the golden is not regenerated, the golden becomes stale and metrics reflect staleness, not application quality.</td></tr>
+    <tr><td>6</td><td>Walk through the DeepEval evaluation pipeline end-to-end.</td><td>Prepare benchmark (goldens, metrics) → run application to produce test cases → invoke metrics (preprocess, judge, parse, score, reason) → aggregate and gate against thresholds → iterate based on failure clusters → version and repeat.</td></tr>
+    <tr><td>7</td><td>What are the three core scoring techniques?</td><td>QAG (ratio-based fact checking), G-Eval (rubric-based chain-of-thought judge), DAG (deterministic decision graph).</td></tr>
+    <tr><td>8</td><td>When would you use DAG over G-Eval?</td><td>When the evaluation is high-stakes and needs deterministic, traceable, auditable logic rather than a single holistic LLM judgment.</td></tr>
+    <tr><td>9</td><td>Difference between Faithfulness and Hallucination metrics?</td><td>Faithfulness checks against retrieval_context (live RAG retriever output); Hallucination checks against a curated, trusted context and is reverse-scaled (lower = better).</td></tr>
+    <tr><td>10</td><td>How is the Summarization score computed?</td><td>The minimum of the alignment score (factual consistency) and inclusion score (comprehensiveness) — both must be strong.</td></tr>
+    <tr><td>11</td><td>What's the difference between ToolCorrectnessMetric and TaskCompletionMetric?</td><td>Tool Correctness deterministically compares called vs expected tools; Task Completion uses an LLM judge to assess whether the goal was achieved.</td></tr>
+    <tr><td>12</td><td>Why is versioning the dataset important?</td><td>Goldens are anchored to a source-document version. Versioning lets you attribute score changes to application changes rather than dataset changes.</td></tr>
+  </table>
+
+  <h2>20. Ultra-Fast Revision (60 Seconds)</h2>
+  <div class="callout" style="font-size:11px;">
+    <b>Definition:</b> DeepEval = open-source, Pytest-native LLM evaluation framework, 50+ metrics.<br>
+    <b>Internal Architecture:</b> Data → Metric → Judge → Reasoning → Synthesizer → Orchestration → Reporting.<br>
+    <b>Synthesizer Pipeline:</b> Ingest → Chunk → Extract Facts → Generate Questions → Generate Answers → Attach Context → Filter → Persist. Modes: from documents, from goldens, from scratch. Evolver raises difficulty.<br>
+    <b>Evaluation Pipeline:</b> Prepare benchmark → Test cases → Metrics (preprocess → judge → parse → score → reason) → Threshold gate → Report → Iterate.<br>
+    <b>3 Reasoning Techniques:</b> QAG (countable ratio) • G-Eval (rubric + CoT + token-probability weighting) • DAG (deterministic decision graph).<br>
+    <b>RAG Internals:</b> Faithfulness = truthful/total against retrieval_context • Answer Relevancy = relevant/total against input • Hallucination = contradicted/total against curated context (LOWER better) • Summarization = min(alignment, inclusion).<br>
+    <b>Interview Trap:</b> G-Eval is an internal technique, not a rival framework. Hallucination reverses the usual direction — lower is better.<br>
+    <b>Most Important Fact:</b> Every DeepEval metric is self-explaining — it returns a score AND a reason, making failures auditable rather than opaque.
+  </div>
+
+  <div class="footer-tag">DeepEval Cheat Sheet — Page 8 of 8 — Mistakes, Cram Facts, Q&amp;A &amp; 60-Second Recap</div>
+</div>
+
+</body>
+</html>
